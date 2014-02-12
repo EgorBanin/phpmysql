@@ -2,46 +2,33 @@
 
 namespace Mysql;
 
+use \Mysqli;
+
 /**
  * База данных MySQL
  * Обёртка Mysqli с подключением по требованию.
  */
 class Mysql {
 	
-	const _MYSQLI_CONNECT_SUCCESS_CODE = 0;
-	
-	/**
-	 * @var string имя пользоватедя бд
-	 */
 	private $username;
 	
-	/**
-	 * @var string пароль пользователя бд
-	 */
 	private $password;
 	
 	private $host;
 	
 	private $port;
 	
-	/**
-	 * @var string база данных по умолчанию
-	 */
 	private $defaultDb;
 	
-	/**
-	 * @var string кодировка подключения
-	 * @see http://dev.mysql.com/doc/refman/5.5/en/charset-connection.html
-	 */
 	private $charset;
 	
 	/**
-	 * @var \Mysqli
+	 * @var Mysqli
 	 */
 	private $mysqli;
 	
 	/**
-	 * Подключение создаётся не сразу, а по требованию
+	 * Подключение создаётся не сразу, а при первом запросе.
 	 */
 	public function __construct($username, $password, $host, $port = 3306) {
 		$this->username = $username;
@@ -50,6 +37,10 @@ class Mysql {
 		$this->port = $port;
 	}
 	
+	/**
+	 * База данных по умолчанию
+	 * @param string $dbName
+	 */
 	public function defaultDb($dbName) {
 		$this->defaultDb = $dbName;
 		
@@ -58,6 +49,10 @@ class Mysql {
 		}
 	}
 	
+	/**
+	 * Кодировка
+	 * @param string $charset
+	 */
 	public function charset($charset) {
 		$this->charset = $charset;
 		
@@ -67,30 +62,95 @@ class Mysql {
 	}
 	
 	/**
-	 * Создание и выполнение запроса
+	 * Запрос
+	 * Значения параметров экранируются; строки заключаются в одинарные кавычки;
+	 * булевы значения преобразуются в строки true и false, null-значения — в null;
+	 * значения одномерных массивов разделяются запятыми,
+	 * двуменые дополнительно заключаются скобки;
+	 * объекты приводятся к строке.
 	 * @param string $sql
-	 * @param array $vars
+	 * @param array $params
 	 * @return Result
 	 * @throws Exception
 	 */
-	public function query($sql, array $vars = []) {
-		$query = new Query($sql, $vars);
+	public function query($sql, array $params = []) {
+		$preparedSql = $this->prepare($sql, $params);
+		$mysqli = $this->mysqli();
+		$mysqliResult = $mysqli->query($preparedSql);
 		
-		return $this->executeQuery($query);
+		if ( ! $mysqliResult) {
+			throw new Exception('Не удалось выполнить запрос: '.$mysqli->error);
+		}
+		
+		$rows = [];
+		if ($mysqliResult instanceof \Mysqli_Result) {
+			while ($row = $mysqliResult->fetch_assoc()) {
+				$rows[] = $row;
+			}
+		}
+		
+		return new Result($preparedSql, $rows, $mysqli->affected_rows, $mysqli->insert_id);
+	}
+	
+	private function prepare($sql, array $params) {
+		$replacePairs = [];
+		
+		foreach ($params as $name => $val) {
+			$replacePairs[$name] = $this->quote($val);
+		}
+		
+		return strtr($sql, $replacePairs);
+	}
+	
+	private function quote($val) {
+		$mysqli = $this->mysqli();
+		
+		if (is_string($val)) {
+			$str = $mysqli->escape_string($val);
+			$quoted = "'$str'";
+		} elseif (is_int($val)) {
+			$quoted = $val;
+		} elseif (is_float($val)) {
+			$quoted = sprintf('%F', $val);
+		} elseif (is_bool($val)) {
+			$quoted = $val? 'true' : 'false';
+		} elseif (is_null($val)) {
+			$quoted = 'null';
+		} elseif (is_array($val)) {
+			$quotedArr =[];
+			
+			foreach ($val as $innerVal) {
+				$str = $this->quote($innerVal);
+				
+				if (is_array($innerVal)) {
+					$quotedArr[] = "($str)";
+				} else {
+					$quotedArr[] = $str;
+				}
+			}
+			
+			$quoted = join(', ', $quotedArr);
+		} elseif (is_object($val)) {
+			$quoted = $this->quote((string) $val);
+		} else {
+			throw new Exception('Неожиданный тип значения '.gettype($val));
+		}
+		
+		return $quoted;
 	}
 	
 	/**
-	 * @return \Mysqli
+	 * @return Mysqli
 	 * @throws Exception
 	 */
 	private function connect() {
 		try {
-			$mysqli = new \Mysqli($this->host, $this->username, $this->password, $this->defaultDb, $this->port);
+			$mysqli = new Mysqli($this->host, $this->username, $this->password, $this->defaultDb, $this->port);
 		} catch (\Exception $e) {
 			throw new Exception($e->getMessage());
 		}
 		
-		if ($mysqli->connect_errno != self::_MYSQLI_CONNECT_SUCCESS_CODE) {
+		if ($mysqli->connect_errno != 0) {
 			throw new Exception('Не удалось подключиться к базе данных: '.$mysqli->connect_error);
 		}
 		
@@ -101,39 +161,12 @@ class Mysql {
 		return $mysqli;
 	}
 	
-	public function mysqli() {
+	private function mysqli() {
 		if ($this->mysqli === null) {
 			$this->mysqli = $this->connect();
 		}
 		
 		return $this->mysqli;
-	}
-	
-	/**
-	 * Выполнение запроса
-	 * @param Query $query
-	 * @return Result
-	 * @throws Exception
-	 */
-	public function executeQuery(Query $query) {
-		$mysqli = $this->mysqli();
-		
-		$sql = $query->prepare([$mysqli, 'escape_string']);
-		$mysqliResult = $mysqli->query($sql);
-		
-		if ( ! $mysqliResult) {
-			throw new Exception('Не удалось выполнить запрос: '.$mysqli->error);
-		}
-		
-		$rows = [];
-		
-		if ($mysqliResult instanceof \Mysqli_Result) {
-			while ($row = $mysqliResult->fetch_assoc()) {
-				$rows[] = $row;
-			}
-		}
-		
-		return new Result($sql, $rows, $mysqli->affected_rows, $mysqli->insert_id);
 	}
 	
 	public function __destruct() {

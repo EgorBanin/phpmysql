@@ -5,11 +5,11 @@ use Mysql\Result;
 class ResutTest extends PHPUnit_Framework_TestCase {
 	
 	public function testRow() {
-		$result = new Result([
+		$result = new Result('', [
 			['id' => 1, 'text' => 'abc'],
 			['id' => 2, 'text' => 'def'],
 			['id' => 3, 'text' => 'ghi']
-		], 1, null);
+		], 1, 0);
 		
 		$this->assertEquals(['id' => 1, 'text' => 'abc'], $result->row());
 		$this->assertEquals(['id' => 2, 'text' => 'def'], $result->row());

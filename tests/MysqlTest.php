@@ -73,7 +73,18 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 			engine InndoDB
 			comment \'Книги\'
 		');
-		$this->assertEquals(new Result([], 0, null), $result);
+		$this->assertEquals(new Result('
+			create table `Book` (
+				`id` int unsigned not null auto_increment,
+				`ISBN` char(17) binary not null,
+				`title` varchar(255) not null,
+				`author` varchar(255) not null,
+				primary key (`id`),
+				unique key `ISBN` (`ISBN`)
+			)
+			engine InndoDB
+			comment \'Книги\';
+		', [], 0, 0), $result);
 		
 		// insert
 		$result = $db->query('
@@ -89,25 +100,56 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 				`ISBN`, `title`, `author`
 			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\')
 		');
-		$this->assertEquals(new Result([], 2, 1), $result);
+		$this->assertEquals(new Result('
+			insert into `Book` (
+				`ISBN`, `title`, `author`
+			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\');
+		', [], 2, 1), $result);
 		
 		// select
 		$result = $db->query('
 			select *
 			from `Book`
-			where `ISBN` = :ISBN
+			where `ISBN` = :ISBN;
 		', [':ISBN' => '978-5-93286-153-0']);
 		$this->assertLogEndsWith('
 			select *
 			from `Book`
 			where `ISBN` = \'978-5-93286-153-0\'
 		');
-		$this->assertEquals(new Result([[
+		$this->assertEquals(new Result('
+			select *
+			from `Book`
+			where `ISBN` = \'978-5-93286-153-0\';
+		', [[
 			'id' => 2,
 			'ISBN' => '978-5-93286-153-0',
 			'title' => 'MySQL. Оптимизация производительности',
 			'author' => 'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц'
-		]], 1, null), $result);
+		]], 1, 0), $result);
+		
+		$result = $db->query('
+			insert into `Book` set
+			`ISBN` = :ISBN,
+			`title` = :title,
+			`author` = :author;
+		', [
+			':ISBN' => '000-0-0000-0000-0',
+			':title' => "\"'\\/?&%@=>;\0",
+			':author' => ''
+		]);
+		$this->assertLogEndsWith('
+			insert into `Book` set
+			`ISBN` = \'000-0-0000-0000-0\',
+			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
+			`author` = \'\'
+		');
+		$this->assertEquals(new Result('
+			insert into `Book` set
+			`ISBN` = \'000-0-0000-0000-0\',
+			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
+			`author` = \'\';
+		', [], 1, 3), $result);
 	}
 	
 }

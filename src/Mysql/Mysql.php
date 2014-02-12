@@ -133,7 +133,7 @@ class Mysql {
 			}
 		}
 		
-		return new Result($rows, $mysqli->affected_rows, $mysqli->insert_id);
+		return new Result($sql, $rows, $mysqli->affected_rows, $mysqli->insert_id);
 	}
 	
 	public function __destruct() {

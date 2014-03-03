@@ -9,24 +9,26 @@ use Mysql\Mysql,
  */
 class MysqlTest extends PHPUnit_Framework_TestCase {
 	
-	private static $tmpDir;
+	private static $mysqlUser = 'root';
+	private static $mysqlPassword = '123456';
+	
+	private static $tmpDir = '/tmp/mysqllog';
 	
 	private static $mysqlLog;
 	
 	public static function setUpBeforeClass() {
-		$command = 'mysql -uroot -p123456 < '.__DIR__.'/sql/setUp.sql';
+		$command = 'mysql -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/setUp.sql';
 		exec($command);
 		
-		// Предпологается, что mysqld может создавать файлы в tmp директории пользователя.
+		// Предпологается, что mysqld может создавать файлы в tmp директории.
 		// Например в Ubuntu AppArmor, настроенный по умолчанию, допускает такое.
-		self::$tmpDir = getenv('HOME').'/tmp/mysqllog';
 		mkdir(self::$tmpDir);
 		exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по другому
 		self::$mysqlLog = self::$tmpDir.'/mysql.log';
 	}
 	
 	public static function tearDownAfterClass() {
-		$command = 'mysql -uroot -p123456 < '.__DIR__.'/sql/tearDown.sql';
+		$command = 'mysql -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/tearDown.sql';
 		exec($command);
 		@unlink(self::$mysqlLog);
 		rmdir(self::$tmpDir);
@@ -47,6 +49,9 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		
 		$db->defaultDb('sakilaDb');
 		$this->assertLogEndsWith('Init DB	sakilaDb');
+		
+		$db->charset('utf8');
+		$this->assertLogEndsWith('SET NAMES utf8');
 		
 		// создание таблицы
 		$result = $db->query('

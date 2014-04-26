@@ -76,7 +76,12 @@ class Mysql {
 	public function query($sql, array $params = []) {
 		$preparedSql = $this->prepare($sql, $params);
 		$mysqli = $this->mysqli();
-		$mysqliResult = $mysqli->query($preparedSql);
+		
+		try {
+			$mysqliResult = $mysqli->query($preparedSql);
+		} catch (\Exception $e) {
+			throw new Exception($e->getMessage());
+		}
 		
 		if ( ! $mysqliResult) {
 			throw new Exception('Не удалось выполнить запрос: '.$mysqli->error);
@@ -102,6 +107,11 @@ class Mysql {
 		return strtr($sql, $replacePairs);
 	}
 	
+	/**
+	 * @param mixed $val
+	 * @return string
+	 * @throws \Mysql\Exception
+	 */
 	private function quote($val) {
 		$mysqli = $this->mysqli();
 		
@@ -109,7 +119,7 @@ class Mysql {
 			$str = $mysqli->escape_string($val);
 			$quoted = "'$str'";
 		} elseif (is_int($val)) {
-			$quoted = $val;
+			$quoted = (string) $val;
 		} elseif (is_float($val)) {
 			$quoted = sprintf('%F', $val);
 		} elseif (is_bool($val)) {
@@ -130,10 +140,14 @@ class Mysql {
 			}
 			
 			$quoted = join(', ', $quotedArr);
-		} elseif (is_object($val)) {
-			$quoted = $this->quote((string) $val);
 		} else {
-			throw new Exception('Неожиданный тип значения '.gettype($val));
+			try {
+				$strVal = (string) $val;
+			} catch (\Exception $e) {
+				throw new Exception($e->getMessage());
+			}
+			
+			$quoted = $this->quote($strVal);
 		}
 		
 		return $quoted;

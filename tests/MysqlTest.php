@@ -1,6 +1,7 @@
 <?php
 
-use Mysql\Mysql,
+use
+	Mysql\Mysql,
 	Mysql\Result;
 
 /**
@@ -155,6 +156,34 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
 			`author` = \'\';
 		', [], 1, 3), $result);
+		
+		// exception
+		$this->setExpectedException('\Mysql\Exception');
+		$db->query('');
+		$db->query('xxx');
+	}
+	
+	public function testQuote() {
+		$db = new Mysql('sakila', 'password123', 'localhost');
+		
+		$reflectionMysql = new ReflectionClass('Mysql\Mysql');
+		$quote = $reflectionMysql->getMethod('quote');
+		$quote->setAccessible(true);
+		
+		$this->assertSame("'Foo'", $quote->invoke($db, 'Foo'));
+		$this->assertSame("'\\'Bar\\''", $quote->invoke($db, "'Bar'"));
+		$this->assertSame('123', $quote->invoke($db, 123));
+		$this->assertSame('-123', $quote->invoke($db, -123));
+		$this->assertSame('0.500000', $quote->invoke($db, 0.5));
+		$this->assertSame('true', $quote->invoke($db, true));
+		$this->assertSame('false', $quote->invoke($db, false));
+		$this->assertSame('null', $quote->invoke($db, null));
+		$this->assertSame('\'Baz\', 0', $quote->invoke($db, ['Baz', 0]));
+		$this->assertSame('(\'qux\', 1), (\'quux\', 2)', $quote->invoke($db, [['qux', 1], ['quux', 2]]));
+		$this->assertSame("'Hello world'", $quote->invoke($db, new \SimpleXmlElement('<root>Hello world</root>')));
+		
+		$this->setExpectedException('\Mysql\Exception');
+		$quote->invoke($db, new \stdClass);
 	}
 	
 }

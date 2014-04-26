@@ -158,9 +158,15 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		', [], 1, 3), $result);
 		
 		// exception
-		$this->setExpectedException('\Mysql\Exception');
-		$db->query('');
-		$db->query('xxx');
+		try {
+			$db->query('');
+			$this->fail('Expected exception not thrown');
+		} catch (\Mysql\Exception $e) {}
+		
+		try {
+			$db->query('xxx');
+			$this->fail('Expected exception not thrown');
+		} catch (\Mysql\Exception $e) {}
 	}
 	
 	public function testQuote() {

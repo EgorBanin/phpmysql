@@ -92,6 +92,8 @@ class Mysql {
 			while ($row = $mysqliResult->fetch_assoc()) {
 				$rows[] = $row;
 			}
+			
+			$mysqliResult->free();
 		}
 		
 		return new Result($preparedSql, $rows, $mysqli->affected_rows, $mysqli->insert_id);

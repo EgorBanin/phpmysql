@@ -1,35 +1,32 @@
 <?php
 
-use
-	Mysql\Mysql,
-	Mysql\Result;
-
 /**
  * Тест сравнивает ожидаемые запросы с теми, что попадают в лог запросов MySQL.
  * Также проверяются результаты.
  */
 class MysqlTest extends PHPUnit_Framework_TestCase {
 	
+	private static $mysqlCommand = '"C:\Program Files\MySQL\MySQL Server 5.6\bin\mysql"';
 	private static $mysqlUser = 'root';
 	private static $mysqlPassword = '123456';
 	
-	private static $tmpDir = '/tmp/mysqllog';
+	private static $tmpDir = 'C:/tmp/mysqllog';
 	
 	private static $mysqlLog;
 	
 	public static function setUpBeforeClass() {
-		$command = 'mysql -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/setUp.sql';
+		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/setUp.sql';
 		exec($command);
 		
 		// Предпологается, что mysqld может создавать файлы в tmp директории.
 		// Например в Ubuntu AppArmor, настроенный по умолчанию, допускает такое.
 		mkdir(self::$tmpDir);
-		exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по другому
+		//exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по-другому
 		self::$mysqlLog = self::$tmpDir.'/mysql.log';
 	}
 	
 	public static function tearDownAfterClass() {
-		$command = 'mysql -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/tearDown.sql';
+		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/tearDown.sql';
 		exec($command);
 		@unlink(self::$mysqlLog);
 		rmdir(self::$tmpDir);
@@ -40,7 +37,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function testQuery() {
-		$db = new Mysql('sakila', 'password123', 'localhost');
+		$db = Mysql\Client::init('sakila', 'password123', 'localhost');
 		$db->query('
 			set global
 				general_log_file = :logFile,
@@ -49,7 +46,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		$this->assertFileExists(self::$mysqlLog);
 		
 		$db->defaultDb('sakilaDb');
-		$this->assertLogEndsWith('Init DB	sakilaDb');
+		$this->assertLogEndsWith('Init DB	sakiladb');
 		
 		$db->charset('utf8');
 		$this->assertLogEndsWith('SET NAMES utf8');
@@ -64,7 +61,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 				primary key (`id`),
 				unique key `ISBN` (`ISBN`)
 			)
-			engine InndoDB
+			engine InnoDB
 			comment \'Книги\';
 		');
 		$this->assertLogEndsWith('
@@ -76,10 +73,10 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 				primary key (`id`),
 				unique key `ISBN` (`ISBN`)
 			)
-			engine InndoDB
+			engine InnoDB
 			comment \'Книги\'
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new Mysql\Result('
 			create table `Book` (
 				`id` int unsigned not null auto_increment,
 				`ISBN` char(17) binary not null,
@@ -88,7 +85,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 				primary key (`id`),
 				unique key `ISBN` (`ISBN`)
 			)
-			engine InndoDB
+			engine InnoDB
 			comment \'Книги\';
 		', [], 0, 0), $result);
 		
@@ -106,7 +103,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 				`ISBN`, `title`, `author`
 			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\')
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new Mysql\Result('
 			insert into `Book` (
 				`ISBN`, `title`, `author`
 			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\');
@@ -123,7 +120,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 			from `Book`
 			where `ISBN` = \'978-5-93286-153-0\'
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new Mysql\Result('
 			select *
 			from `Book`
 			where `ISBN` = \'978-5-93286-153-0\';
@@ -150,7 +147,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
 			`author` = \'\'
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new Mysql\Result('
 			insert into `Book` set
 			`ISBN` = \'000-0-0000-0000-0\',
 			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
@@ -170,26 +167,22 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function testQuote() {
-		$db = new Mysql('sakila', 'password123', 'localhost');
+		$conn = new Mysql\Connection('sakila', 'password123', 'localhost', 3306);
 		
-		$reflectionMysql = new ReflectionClass('Mysql\Mysql');
-		$quote = $reflectionMysql->getMethod('quote');
-		$quote->setAccessible(true);
-		
-		$this->assertSame("'Foo'", $quote->invoke($db, 'Foo'));
-		$this->assertSame("'\\'Bar\\''", $quote->invoke($db, "'Bar'"));
-		$this->assertSame('123', $quote->invoke($db, 123));
-		$this->assertSame('-123', $quote->invoke($db, -123));
-		$this->assertSame('0.500000', $quote->invoke($db, 0.5));
-		$this->assertSame('true', $quote->invoke($db, true));
-		$this->assertSame('false', $quote->invoke($db, false));
-		$this->assertSame('null', $quote->invoke($db, null));
-		$this->assertSame('\'Baz\', 0', $quote->invoke($db, ['Baz', 0]));
-		$this->assertSame('(\'qux\', 1), (\'quux\', 2)', $quote->invoke($db, [['qux', 1], ['quux', 2]]));
-		$this->assertSame("'Hello world'", $quote->invoke($db, new \SimpleXmlElement('<root>Hello world</root>')));
+		$this->assertSame("'Foo'", $conn->quote('Foo'));
+		$this->assertSame("'\\'Bar\\''", $conn->quote("'Bar'"));
+		$this->assertSame('123', $conn->quote(123));
+		$this->assertSame('-123', $conn->quote(-123));
+		$this->assertSame('0.500000', $conn->quote(0.5));
+		$this->assertSame('true', $conn->quote(true));
+		$this->assertSame('false', $conn->quote(false));
+		$this->assertSame('null', $conn->quote(null));
+		$this->assertSame('\'Baz\', 0', $conn->quote(['Baz', 0]));
+		$this->assertSame('(\'qux\', 1), (\'quux\', 2)', $conn->quote([['qux', 1], ['quux', 2]]));
+		$this->assertSame("'Hello world'", $conn->quote(new \SimpleXmlElement('<root>Hello world</root>')));
 		
 		$this->setExpectedException('\Mysql\Exception');
-		$quote->invoke($db, new \stdClass);
+		$conn->quote(new \stdClass);
 	}
 	
 }

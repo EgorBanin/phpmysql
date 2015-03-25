@@ -8,11 +8,9 @@
 ~~~php
 <?php
 
-use \Mysql\Mysql;
-
-$db = new Mysql('username', 'password', 'localhost');
-$db->defaultDb('Sakila');
-$db->charset('utf8');
+$db = Mysql\Client::init('username', 'password')
+    ->defaultDb('Sakila')
+    ->charset('utf8');
 ~~~
 
 Подключение к базе данных создаётся не сразу, а при первом запросе.

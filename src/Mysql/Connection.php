@@ -32,18 +32,18 @@ class Connection {
 		try {
 			$mysqli = new \Mysqli($this->host, $this->username, $this->password, $this->defaultDb, $this->port);
 		} catch (\Exception $e) {
-			throw new Exception($e->getMessage());
+			throw new Exception('Не удалось подключиться к базе данных: '.$e->getMessage(), Exception::CODE_CONNECTION_ERROR, $e);
 		}
 		
 		if ($mysqli->connect_errno != 0) {
-			throw new Exception('Не удалось подключиться к базе данных: '.$mysqli->connect_error);
-		}
-		
-		if ($this->charset) {
-			$mysqli->set_charset($this->charset);
+			throw new Exception('Не удалось подключиться к базе данных: '.$mysqli->connect_error, Exception::CODE_CONNECTION_ERROR);
 		}
 		
 		$this->mysqli = $mysqli;
+		
+		if ($this->charset) {
+			$this->charset($this->charset);
+		}
 	}
 	
 	public function disconnect() {
@@ -60,7 +60,11 @@ class Connection {
 		$this->charset = $charset;
 		
 		if ($this->mysqli) {
-			$this->mysqli->set_charset($this->charset);
+			$result = $this->mysqli->set_charset($this->charset);
+			
+			if ($result === false) {
+				throw new Exception('Ошибка при установке кодировки', Exception::CODE_CHARSET_ERROR);
+			}
 		}
 	}
 	
@@ -72,7 +76,11 @@ class Connection {
 		$this->defaultDb = $dbName;
 		
 		if ($this->mysqli) {
-			$this->mysqli->select_db($this->defaultDb);
+			$result = $this->mysqli->select_db($this->defaultDb);
+			
+			if ($result === false) {
+				throw new Exception( 'Ошибка при установке базы данных по умолчанию', Exception::CODE_DEFAULTDB_ERROR);
+			}
 		}
 	}
 	
@@ -84,11 +92,11 @@ class Connection {
 		try {
 			$mysqliResult = $this->mysqli->query($sql);
 		} catch (\Exception $e) {
-			throw new Exception($e->getMessage());
+			throw new Exception('Не удалось выполнить запрос: '.$e->getMessage(), Exception::CODE_QUERY_ERROR, $e, $sql);
 		}
 		
 		if ( ! $mysqliResult) {
-			throw new Exception('Не удалось выполнить запрос: '.$this->mysqli->error);
+			throw new Exception('Не удалось выполнить запрос: '.$this->mysqli->error, Exception::CODE_QUERY_ERROR, null, $sql);
 		}
 		
 		$rows = [];
@@ -142,7 +150,7 @@ class Connection {
 			try {
 				$strVal = (string) $val;
 			} catch (\Exception $e) {
-				throw new Exception($e->getMessage());
+				throw new Exception($e->getMessage(), Exception::CODE_QUOTE_ERROR, $e);
 			}
 			
 			$quoted = $this->quote($strVal);

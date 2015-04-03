@@ -2,10 +2,8 @@
 
 namespace Mysql;
 
-use \Mysqli;
-
 /**
- * База данных MySQL
+ * Клиент базы данных MySQL
  * Обёртка Mysqli с подключением по требованию.
  */
 class Client {

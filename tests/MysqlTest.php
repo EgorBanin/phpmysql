@@ -18,10 +18,8 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/setUp.sql';
 		exec($command);
 		
-		// Предпологается, что mysqld может создавать файлы в tmp директории.
-		// Например в Ubuntu AppArmor, настроенный по умолчанию, допускает такое.
 		mkdir(self::$tmpDir);
-		//exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по-другому
+		@exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по-другому
 		self::$mysqlLog = self::$tmpDir.'/mysql.log';
 	}
 	
@@ -161,9 +159,11 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		} catch (\Mysql\Exception $e) {}
 		
 		try {
-			$db->query('xxx');
+			$db->query('xxx :var', [':var' => 'foo']);
 			$this->fail('Expected exception not thrown');
-		} catch (\Mysql\Exception $e) {}
+		} catch (\Mysql\Exception $e) {
+			$this->assertSame('xxx \'foo\'', $e->sql);
+		}
 	}
 	
 	public function testQuote() {
@@ -183,6 +183,30 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		
 		$this->setExpectedException('\Mysql\Exception');
 		$conn->quote(new \stdClass);
+	}
+	
+	public function testDefaultDb() {
+		$conn = new Mysql\Connection('sakila', 'password123', 'localhost', 3306);
+		$conn->query('select 1');
+		
+		$conn->defaultDb('test');
+		
+		try {
+			$conn->defaultDb('bad db');
+			$this->fail('Expected exception not thrown');
+		} catch (\Mysql\Exception $e) {}
+	}
+	
+	public function testCharset() {
+		$conn = new Mysql\Connection('sakila', 'password123', 'localhost', 3306);
+		$conn->query('select 1');
+		
+		$conn->charset('utf8');
+		
+		try {
+			$conn->charset('bad charset');
+			$this->fail('Expected exception not thrown');
+		} catch (\Mysql\Exception $e) {}
 	}
 	
 }

@@ -1,8 +1,8 @@
 <?php
 
-use Mysql\Result;
+namespace Mysql;
 
-class ResutTest extends PHPUnit_Framework_TestCase {
+class ResutTest extends \PHPUnit_Framework_TestCase {
 	
 	public function testRow() {
 		$result = new Result('', [

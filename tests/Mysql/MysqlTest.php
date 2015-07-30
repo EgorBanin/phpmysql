@@ -1,10 +1,12 @@
 <?php
 
+namespace Mysql;
+
 /**
  * Тест сравнивает ожидаемые запросы с теми, что попадают в лог запросов MySQL.
  * Также проверяются результаты.
  */
-class MysqlTest extends PHPUnit_Framework_TestCase {
+class MysqlTest extends \PHPUnit_Framework_TestCase {
 	
 	private static $mysqlCommand = '"C:\Program Files\MySQL\MySQL Server 5.6\bin\mysql"';
 	private static $mysqlUser = 'root';
@@ -15,16 +17,18 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 	private static $mysqlLog;
 	
 	public static function setUpBeforeClass() {
-		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/setUp.sql';
+		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/../sql/setUp.sql';
 		exec($command);
 		
 		mkdir(self::$tmpDir);
-		@exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по-другому
+		if (stripos(PHP_OS, 'win') !== 0) {
+			@exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по-другому
+		}
 		self::$mysqlLog = self::$tmpDir.'/mysql.log';
 	}
 	
 	public static function tearDownAfterClass() {
-		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/sql/tearDown.sql';
+		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/../sql/tearDown.sql';
 		exec($command);
 		@unlink(self::$mysqlLog);
 		rmdir(self::$tmpDir);
@@ -35,7 +39,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function testQuery() {
-		$db = Mysql\Client::init('sakila', 'password123', 'localhost');
+		$db = Client::init('sakila', 'password123', 'localhost');
 		$db->query('
 			set global
 				general_log_file = :logFile,
@@ -74,7 +78,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 			engine InnoDB
 			comment \'Книги\'
 		');
-		$this->assertEquals(new Mysql\Result('
+		$this->assertEquals(new Result('
 			create table `Book` (
 				`id` int unsigned not null auto_increment,
 				`ISBN` char(17) binary not null,
@@ -101,7 +105,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 				`ISBN`, `title`, `author`
 			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\')
 		');
-		$this->assertEquals(new Mysql\Result('
+		$this->assertEquals(new Result('
 			insert into `Book` (
 				`ISBN`, `title`, `author`
 			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\');
@@ -118,7 +122,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 			from `Book`
 			where `ISBN` = \'978-5-93286-153-0\'
 		');
-		$this->assertEquals(new Mysql\Result('
+		$this->assertEquals(new Result('
 			select *
 			from `Book`
 			where `ISBN` = \'978-5-93286-153-0\';
@@ -145,7 +149,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
 			`author` = \'\'
 		');
-		$this->assertEquals(new Mysql\Result('
+		$this->assertEquals(new Result('
 			insert into `Book` set
 			`ISBN` = \'000-0-0000-0000-0\',
 			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
@@ -156,18 +160,18 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		try {
 			$db->query('');
 			$this->fail('Expected exception not thrown');
-		} catch (\Mysql\Exception $e) {}
+		} catch (Exception $e) {}
 		
 		try {
 			$db->query('xxx :var', [':var' => 'foo']);
 			$this->fail('Expected exception not thrown');
-		} catch (\Mysql\Exception $e) {
+		} catch (Exception $e) {
 			$this->assertSame('xxx \'foo\'', $e->sql);
 		}
 	}
 	
 	public function testQuote() {
-		$conn = new Mysql\Connection('sakila', 'password123', 'localhost', 3306);
+		$conn = new Connection('sakila', 'password123', 'localhost', 3306);
 		
 		$this->assertSame("'Foo'", $conn->quote('Foo'));
 		$this->assertSame("'\\'Bar\\''", $conn->quote("'Bar'"));
@@ -186,7 +190,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 	}
 	
 	public function testDefaultDb() {
-		$conn = new Mysql\Connection('sakila', 'password123', 'localhost', 3306);
+		$conn = new Connection('sakila', 'password123', 'localhost', 3306);
 		$conn->query('select 1');
 		
 		$conn->defaultDb('test');
@@ -194,11 +198,11 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		try {
 			$conn->defaultDb('bad db');
 			$this->fail('Expected exception not thrown');
-		} catch (\Mysql\Exception $e) {}
+		} catch (Exception $e) {}
 	}
 	
 	public function testCharset() {
-		$conn = new Mysql\Connection('sakila', 'password123', 'localhost', 3306);
+		$conn = new Connection('sakila', 'password123', 'localhost', 3306);
 		$conn->query('select 1');
 		
 		$conn->charset('utf8');
@@ -206,7 +210,7 @@ class MysqlTest extends PHPUnit_Framework_TestCase {
 		try {
 			$conn->charset('bad charset');
 			$this->fail('Expected exception not thrown');
-		} catch (\Mysql\Exception $e) {}
+		} catch (Exception $e) {}
 	}
 	
 }

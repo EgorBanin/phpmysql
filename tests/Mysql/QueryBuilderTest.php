@@ -11,20 +11,20 @@ class QueryBuilderTest extends \PHPUnit_Framework_TestCase {
 	}
 	
 	public function testWhere() {
-		$this->assertSame('`foo` = :foo', QueryBuilder::where([
+		$this->assertSame('`foo` = :0', QueryBuilder::where([
 			'foo' => 'foo value',
 		]));
-		$this->assertSame('`foo` = :foo and `bar` = :bar', QueryBuilder::where([
+		$this->assertSame('`foo` = :1 and `bar` = :2', QueryBuilder::where([
 			'foo' => 'foo value',
 			'bar' => 123,
 		]));
-		$this->assertSame('(`foo` = :foo or `bar` = :bar)', QueryBuilder::where([
+		$this->assertSame('(`foo` = :3 or `bar` = :4)', QueryBuilder::where([
 			'$or' => [
 				'foo' => 'foo value',
 				'bar' => 123,
 			],
 		]));
-		$this->assertSame('(`foo` = :foo or `bar` = :bar) and `baz` = :baz', QueryBuilder::where([
+		$this->assertSame('(`foo` = :5 or `bar` = :6) and `baz` = :7', QueryBuilder::where([
 			'$or' => [
 				'foo' => 'foo value',
 				'bar' => 123,
@@ -35,7 +35,7 @@ class QueryBuilderTest extends \PHPUnit_Framework_TestCase {
 	
 	public function testSelect() {
 		$params = [];
-		$this->assertSame('select * from `FooTable` where `foo` = :foo', QueryBuilder::select(
+		$this->assertSame('select * from `FooTable` where `foo` = :0', QueryBuilder::select(
 			'FooTable',
 			[
 				'foo' => 'foo value',
@@ -45,22 +45,22 @@ class QueryBuilderTest extends \PHPUnit_Framework_TestCase {
 			0,
 			$params
 		));
-		$this->assertSame([':foo' => 'foo value'], $params);
+		$this->assertSame([':0' => 'foo value'], $params);
 	}
 	
 	public function testInsert() {
 		$params = [];
-		$this->assertSame('insert into `FooTable` set `foo` = :foo', QueryBuilder::insert(
+		$this->assertSame('insert into `FooTable` set `foo` = :0', QueryBuilder::insert(
 			'FooTable',
 			[
 				'foo' => 'foo value',
 			],
 			$params
 		));
-		$this->assertSame([':foo' => 'foo value'], $params);
+		$this->assertSame([':0' => 'foo value'], $params);
 		
 		$params = [];
-		$this->assertSame('insert into `FooTable` (`foo`) values :values', QueryBuilder::insert(
+		$this->assertSame('insert into `FooTable` (`foo`) values :0', QueryBuilder::insert(
 			'FooTable',
 			[
 				['foo' => 'value 1'],
@@ -68,7 +68,7 @@ class QueryBuilderTest extends \PHPUnit_Framework_TestCase {
 			],
 			$params
 		));
-		$this->assertSame([':values' => [
+		$this->assertSame([':0' => [
 			['foo' => 'value 1'],
 			['foo' => 'value 2'],
 		]], $params);
@@ -76,7 +76,7 @@ class QueryBuilderTest extends \PHPUnit_Framework_TestCase {
 	
 	public function testUpdate() {
 		$params = [];
-		$this->assertSame('update `FooTable` set `foo` = :foo where `id` = :id', QueryBuilder::update(
+		$this->assertSame('update `FooTable` set `foo` = :0 where `id` = :1', QueryBuilder::update(
 			'FooTable',
 			[
 				'foo' => 'foo value',
@@ -86,7 +86,7 @@ class QueryBuilderTest extends \PHPUnit_Framework_TestCase {
 			],
 			$params
 		));
-		$this->assertSame([':foo' => 'foo value', ':id' => 123], $params);
+		$this->assertSame([':0' => 'foo value', ':1' => 123], $params);
 	}
 	
 	public function testOrderBy() {

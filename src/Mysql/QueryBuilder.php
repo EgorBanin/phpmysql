@@ -4,11 +4,18 @@ namespace Mysql;
 
 class QueryBuilder {
 	
+	public static $placeholderId = 0;
+
 	public static function quote($str) {
 		return '`'.strtr($str, ['`' => '``']).'`';
 	}
 	
+	public static function placeholder() {
+		return ':'.self::$placeholderId++;
+	}
+	
 	public static function select($table, array $query, array $fields, array $sort, $limit, array &$params = []) {
+		self::$placeholderId = 0;
 		$quotedFields = array_map(function ($val) {
 			if ($val !== '*') {
 				$val = QueryBuilder::quote($val);
@@ -35,6 +42,7 @@ class QueryBuilder {
 	}
 	
 	public static function insert($table, array $fields, array &$params = []) {
+		self::$placeholderId = 0;
 		$sql = 'insert into '.self::quote($table);
 		$isAssoc =  ! empty(array_filter(array_keys($fields), 'is_string'));
 		
@@ -49,14 +57,16 @@ class QueryBuilder {
 			}
 			
 			$sql .= ' ('.  implode(', ', $names). ')';
-			$sql .= ' values :values';
-			$params[':values'] = $fields;
+			$p = self::placeholder();
+			$sql .= ' values '.$p;
+			$params[$p] = $fields;
 		}
 		
 		return $sql;
 	}
 	
 	public static function update($table, array $fields, array $query, array &$params = []) {
+		self::$placeholderId = 0;
 		$sql = 'update '.self::quote($table);
 		$sql .= self::set($fields, $params);
 			
@@ -70,8 +80,9 @@ class QueryBuilder {
 	public static function set(array $fields, array &$params) {
 		$set = [];
 		foreach ($fields as $name => $value) {
-			$set[] = QueryBuilder::quote($name).' = :'.$name;
-			$params[':'.$name] = $value;
+			$p = self::placeholder();
+			$set[] = QueryBuilder::quote($name).' = '.$p;
+			$params[$p] = $value;
 		}
 		
 		return empty($set)? '' : ' set '.implode(', ', $set);
@@ -98,27 +109,34 @@ class QueryBuilder {
 				$where[] = '('.self::where($v, $opMap[$k]).')';
 			} else {
 				list($comparisonOp, $val) = self::parseVal($v);
-				$params[":$k"] = $val;
-				$where[] = self::comparison($comparisonOp, $k);
+				$where[] = self::comparison($comparisonOp, $k, $val, $params);
 			}
 		}
 
 		return implode(" $op ", $where);
 	}
 	
-	public static function comparison($op, $field) {
+	public static function comparison($op, $field, $val, array &$params = []) {
 		switch($op) {
 			case 'between':
-				$placeholder = ":$field and :$field";
+				$p1 = self::placeholder();
+				$p2 = self::placeholder();
+				$placeholder = "$p1 and $p2";
+				$params[$p1] = array_shift($val);
+				$params[$p2] = array_shift($val);
 				break;
 			
 			case 'in':
 			case 'nin':
-				$placeholder = "(:$field)";
+				$p = self::placeholder();
+				$placeholder = "($p)";
+				$params[$p] = $val;
 				break;
 			
 			default:
-				$placeholder = ":$field";
+				$p = self::placeholder();
+				$placeholder = $p;
+				$params[$p] = $val;
 		}
 		
 		return sprintf('%s %s %s', self::quote($field), $op, $placeholder);

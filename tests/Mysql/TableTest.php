@@ -150,4 +150,34 @@ class TableTest extends \PHPUnit_Framework_TestCase {
 			['id' => '4'],
 		], $t->select([], ['id']));
 	}
+	
+	public function testInsert() {
+		$t = new Table($this->db, 'foobar');
+		$this->assertSame([
+			['id' => '1'],
+			['id' => '2'],
+			['id' => '3'],
+			['id' => '4'],
+		], $t->select([], ['id'], ['id' => 1]));
+		$id = $t->insert([
+			'title' => 'Quux',
+			'content' => 'Quux content',
+			'ct' => '1438168960',
+			'ut' => '1438168960',
+		]);
+		$this->assertSame([
+			['id' => '1'],
+			['id' => '2'],
+			['id' => '3'],
+			['id' => '4'],
+			['id' => (string) $id],
+		], $t->select([], ['id'], ['id' => 1]));
+		$this->assertSame([
+			'id' => (string) $id,
+			'title' => 'Quux',
+			'content' => 'Quux content',
+			'ct' => '1438168960',
+			'ut' => '1438168960',
+		], $t->get($id));
+	}
 }

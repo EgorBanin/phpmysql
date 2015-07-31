@@ -42,6 +42,14 @@ class Table {
 		return reset($rows);
 	}
 	
+	public function insert(array $fields) {
+		$params = [];
+		$sql = QueryBuilder::insert($this->name, $fields, $params);
+		$result = $this->db->query($sql, $params);
+		
+		return $result->insertId();
+	}
+	
 	public function update(array $fields, array $query) {
 		$params = [];
 		$sql = QueryBuilder::update($this->name, $fields, $query, $params);

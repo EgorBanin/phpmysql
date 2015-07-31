@@ -24,7 +24,7 @@ class QueryBuilder {
 		}
 		
 		if ($sort) {
-			$sql .= ' order by '.self::orderBy($sort);
+			$sql .= self::orderBy($sort);
 		}
 		
 		if ($limit) {
@@ -34,22 +34,47 @@ class QueryBuilder {
 		return $sql;
 	}
 	
-	public static function update($table, array $fields, array $query, array &$params = []) {
-		$sql = 'update '.self::quote($table);
+	public static function insert($table, array $fields, array &$params = []) {
+		$sql = 'insert into '.self::quote($table);
+		$isAssoc =  ! empty(array_filter(array_keys($fields), 'is_string'));
 		
-		$set = [];
-		foreach ($fields as $name => $value) {
-			$set[] = QueryBuilder::quote($name).' = :'.$name;
-			$params[':'.$name] = $value;
+		if ($isAssoc) {
+			$sql .= self::set($fields, $params);
+		} else {
+			$keys = array_keys(reset($fields));
+			
+			$names = [];
+			foreach ($keys as $name) {
+				$names[] = self::quote($name);
+			}
+			
+			$sql .= ' ('.  implode(', ', $names). ')';
+			$sql .= ' values :values';
+			$params[':values'] = $fields;
 		}
 		
-		$sql .= ' set '.implode(', ', $set);
+		return $sql;
+	}
+	
+	public static function update($table, array $fields, array $query, array &$params = []) {
+		$sql = 'update '.self::quote($table);
+		$sql .= self::set($fields, $params);
 			
 		if ($query) {
 			$sql .= ' where '.self::where($query, 'and', $params);
 		}
 		
 		return $sql;
+	}
+	
+	public static function set(array $fields, array &$params) {
+		$set = [];
+		foreach ($fields as $name => $value) {
+			$set[] = QueryBuilder::quote($name).' = :'.$name;
+			$params[':'.$name] = $value;
+		}
+		
+		return empty($set)? '' : ' set '.implode(', ', $set);
 	}
 	
 	public static function delete($table, array $query, array &$params = []) {
@@ -128,21 +153,50 @@ class QueryBuilder {
 		return [$op, $val];
 	}
 	
-	public static function orderBy(array $sort) {
+	public static function orderBy($sort) {
 		$order = [];
-		foreach ($sort as $field => $direction) {
-			$direction = (
-				$direction > 0
-				|| strtolower($direction) === 'asc'
-			)? 'asc' : 'desc';
-			$order[] = self::quote($field).' '.$direction;
+		
+		if (is_array($sort)) {
+			$isAssoc =  ! empty(array_filter(array_keys($sort), 'is_string'));
+			
+			foreach ($sort as $k => $v) {
+				if ($isAssoc) {
+					$direction = ($v > 0 || strtolower($v) === 'asc')? 'asc' : 'desc';
+					$order[] = self::quote($k).' '.$direction;
+				} else {
+					$order[] = self::quote($v);
+				}
+			}
+		} else {
+			$order[] = self::quote($sort);
 		}
 		
-		return implode(', ', $order);
+		return empty($order)? '' : 'order by '.implode(', ', $order);
 	}
 	
 	public static function limit($slice) {
+		if (is_array($slice)) {
+			$isAssoc =  ! empty(array_filter(array_keys($slice), 'is_string'));
+			
+			if ($isAssoc) {
+				$limit =  (int) $slice['limit'];
+				$offset = isset($slice['offset'])? (int) $slice['offset'] : null;
+			} elseif (count($slice) === 1) {
+				$limit = (int) array_shift($slice);
+				$offset = null;
+			} else {
+				$offset = (int) array_shift($slice);
+				$limit = (int) array_shift($slice);
+			}
+		} else {
+			$limit = (int) $slice;
+			$offset = null;
+		}
 		
+		$sql = 'limit '.$limit;
+		$sql .= $offset? ' offset '.$offset : '';
+		
+		return $sql;
 	}
 	
 }

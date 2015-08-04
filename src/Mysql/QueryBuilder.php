@@ -4,52 +4,73 @@ namespace Mysql;
 
 class QueryBuilder {
 	
-	public static $placeholderId = 0;
-
-	public static function quote($str) {
-		return '`'.strtr($str, ['`' => '``']).'`';
-	}
+	private $placeholderId;
 	
-	public static function placeholder() {
-		return ':'.self::$placeholderId++;
-	}
+	private $params = [];
 	
-	public static function select($table, array $query, array $fields, array $sort, $limit, array &$params = []) {
-		self::$placeholderId = 0;
-		$quotedFields = array_map(function ($val) {
-			if ($val !== '*') {
-				$val = QueryBuilder::quote($val);
+	private $whereOps = [
+		'$and' => 'and',
+		'$or' => 'or',
+	];
+	
+	private $ops = [
+		'$eq' => '=',
+		'$ne' => '!=',
+		'$lt' => '<',
+		'$lte' => '<=',
+		'$gt' => '>',
+		'$gte' => '>=',
+		'$between' => 'between',
+		'$in' => 'in',
+		'$nin' => 'not in',
+	];
+	
+	public function select($table, $fields = ['*'], array $where = [], $order = null, $limit = null) {
+		$this->placeholderId = 0;
+		
+		$fields = (array) $fields;
+		$quotedFields = [];
+		foreach ($fields as $alias => $field) {
+			if ($field !== '*') {
+				$field = self::quote($field);
 			}
 			
-			return $val;
-		}, $fields);
+			$fieldSql = $field;
+			
+			if (is_string($alias)) {
+				$fieldSql .= 'as '.self::quote($alias);
+			}
+			
+			$quotedFields[] = $fieldSql;
+		}
+		
 		$sql = 'select '.implode(', ', $quotedFields);
 		$sql .= ' from '.self::quote($table);
 		
-		if ($query) {
-			$sql .= ' where '.self::where($query, 'and', $params);
+		
+		if ($where) {
+			$sql .= ' where '.$this->buildWhere($where);
 		}
 		
-		if ($sort) {
-			$sql .= self::orderBy($sort);
+		if ($order) {
+			$sql .= self::orderBy($order); // todo
 		}
 		
 		if ($limit) {
-			$sql .= ' limit '.$limit;
+			$sql .= ' limit '.self::limit($limit); // todo
 		}
 		
 		return $sql;
 	}
 	
-	public static function insert($table, array $fields, array &$params = []) {
-		self::$placeholderId = 0;
+	public function insert($table, $vals) {
+		$this->placeholderId = 0;
 		$sql = 'insert into '.self::quote($table);
-		$isAssoc =  ! empty(array_filter(array_keys($fields), 'is_string'));
 		
-		if ($isAssoc) {
-			$sql .= self::set($fields, $params);
+		if (is_string(key($vals))) {
+			$sql .= 'set '.$this->set($vals);
 		} else {
-			$keys = array_keys(reset($fields));
+			$keys = array_keys(reset($vals));
 			
 			$names = [];
 			foreach ($keys as $name) {
@@ -57,110 +78,71 @@ class QueryBuilder {
 			}
 			
 			$sql .= ' ('.  implode(', ', $names). ')';
-			$p = self::placeholder();
-			$sql .= ' values '.$p;
-			$params[$p] = $fields;
+			$sql .= ' values '.$this->addParam($vals);
 		}
 		
 		return $sql;
 	}
 	
-	public static function update($table, array $fields, array $query, array &$params = []) {
-		self::$placeholderId = 0;
+	public function update($table, $vals, $where) {
+		$this->placeholderId = 0;
 		$sql = 'update '.self::quote($table);
-		$sql .= self::set($fields, $params);
+		$sql .= 'set '.$this->set($vals);
 			
-		if ($query) {
-			$sql .= ' where '.self::where($query, 'and', $params);
+		if ($where) {
+			$sql .= ' where '.$this->buildWhere($where);
 		}
 		
 		return $sql;
 	}
 	
-	public static function set(array $fields, array &$params) {
-		$set = [];
-		foreach ($fields as $name => $value) {
-			$p = self::placeholder();
-			$set[] = QueryBuilder::quote($name).' = '.$p;
-			$params[$p] = $value;
-		}
-		
-		return empty($set)? '' : ' set '.implode(', ', $set);
+	public static function quote($str) {
+		return '`'.strtr($str, ['`' => '``']).'`';
 	}
 	
-	public static function delete($table, array $query, array &$params = []) {
-		$sql = 'delete from '.self::quote($table);
+	private function addParam($val) {
+		$this->params[$this->placeholderId] = $val;
 		
-		if ($query) {
-			$sql .= ' where '.self::where($query, 'and', $params);
-		}
-		
-		return $sql;
+		return $this->placeholderId++;
 	}
 	
-	public static function where(array $criteria, $op = 'and', array &$params = []) {
-		$opMap = [
-			'$and' => 'and',
-			'$or' => 'or',
-		];
-		$where = [];
-		foreach ($criteria as $k => $v) {
-			if (array_key_exists($k, $opMap) && is_array($v)) {
-				$where[] = '('.self::where($v, $opMap[$k]).')';
+	public function getParams() {
+		return $this->params;
+	}
+
+	/**
+	 * Рекурсивное построение where
+	 * @param array $where
+	 * @param string $op
+	 * @return array where-выражение и параметры
+	 */
+	public function buildWhere(array $where, $op = 'and') {
+		$conditions = [];
+		foreach ($where as $k => $v) {
+			if (array_key_exists($k, $this->whereOps) && is_array($v)) {
+				// рекурсия
+				$conditions[] = '('.$this->buildWhere($v, $this->whereOps[$k]).')';
 			} else {
-				list($comparisonOp, $val) = self::parseVal($v);
-				$where[] = self::comparison($comparisonOp, $k, $val, $params);
+				if (is_int($k)) {
+					$field = key($v);
+					$val = current($v);
+				} else {
+					$field = $k;
+					$val = $v;
+				}
+				
+				$conditions[] = $this->buildComparison($field, $val);
 			}
 		}
 
-		return implode(" $op ", $where);
+		return implode(" $op ", $conditions);
 	}
 	
-	public static function comparison($op, $field, $val, array &$params = []) {
-		switch($op) {
-			case 'between':
-				$p1 = self::placeholder();
-				$p2 = self::placeholder();
-				$placeholder = "$p1 and $p2";
-				$params[$p1] = array_shift($val);
-				$params[$p2] = array_shift($val);
-				break;
-			
-			case 'in':
-			case 'nin':
-				$p = self::placeholder();
-				$placeholder = "($p)";
-				$params[$p] = $val;
-				break;
-			
-			default:
-				$p = self::placeholder();
-				$placeholder = $p;
-				$params[$p] = $val;
-		}
-		
-		return sprintf('%s %s %s', self::quote($field), $op, $placeholder);
-	}
-	
-	public static function parseVal($val) {
-		$opMap = [
-			'$eq' => '=',
-			'$ne' => '!=',
-			'$lt' => '<',
-			'$lte' => '<=',
-			'$gt' => '>',
-			'$gte' => '>=',
-			'$between' => 'between',
-			'$in' => 'in',
-			'$nin' => 'not in',
-		];
-		
+	public function buildComparison($field, $val) {
 		if (is_array($val)) {
-			$first = reset($val);
-			
-			if (array_key_exists($first, $opMap)) {
-				$op = $opMap[$first];
-				array_shift($val);
+			if (is_string(key($val))) {
+				$op = $this->ops[key($val)];
+				$val = current($val);
 			} else {
 				$op = 'in';
 			}
@@ -168,7 +150,43 @@ class QueryBuilder {
 			$op = '=';
 		}
 		
-		return [$op, $val];
+		$sql = self::quote($field).' '.$op.' ';
+		switch($op) {
+			case 'between':
+				$sql .= $this->addParam(array_shift($val))
+					.' and '.$this->addParam(array_shift($val));
+				break;
+			
+			case 'in':
+			case 'nin':
+				$sql .= '('.$this->addParam($val).')';
+				break;
+			
+			default:
+				$sql .= $this->addParam($val);
+		}
+		
+		return $sql;
+	}
+	
+	public function set($vals) {
+		$set = [];
+		foreach ($vals as $filed => $val) {
+			$set[] = self::quote($filed).' = '.$this->addParam($val);
+		}
+		
+		return implode(', ', $set);
+	}
+	
+	public function delete($table, array $where) {
+		$this->placeholderId = 0;
+		$sql = 'delete from '.self::quote($table);
+		
+		if ($where) {
+			$sql .= ' where '.$this->buildWhere($where);
+		}
+		
+		return $sql;
 	}
 	
 	public static function orderBy($sort) {
@@ -211,7 +229,7 @@ class QueryBuilder {
 			$offset = null;
 		}
 		
-		$sql = 'limit '.$limit;
+		$sql = $limit;
 		$sql .= $offset? ' offset '.$offset : '';
 		
 		return $sql;

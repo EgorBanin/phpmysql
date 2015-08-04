@@ -92,11 +92,11 @@ class Connection {
 		try {
 			$mysqliResult = $this->mysqli->query($sql);
 		} catch (\Exception $e) {
-			throw new Exception('Не удалось выполнить запрос: '.$e->getMessage(), Exception::CODE_QUERY_ERROR, $e, $sql);
+			throw new Exception("Не удалось выполнить запрос: $sql\n".$e->getMessage(), Exception::CODE_QUERY_ERROR, $e, $sql);
 		}
 		
 		if ( ! $mysqliResult) {
-			throw new Exception('Не удалось выполнить запрос: '.$this->mysqli->error, Exception::CODE_QUERY_ERROR, null, $sql);
+			throw new Exception("Не удалось выполнить запрос: $sql\n".$this->mysqli->error, Exception::CODE_QUERY_ERROR, null, $sql);
 		}
 		
 		$rows = [];

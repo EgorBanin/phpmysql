@@ -8,11 +8,13 @@ namespace Mysql;
  */
 class MysqlTest extends \PHPUnit_Framework_TestCase {
 	
-	private static $mysqlCommand = '"C:\Program Files\MySQL\MySQL Server 5.6\bin\mysql"';
+	//private static $mysqlCommand = '"C:\Program Files\MySQL\MySQL Server 5.6\bin\mysql"';
+	private static $mysqlCommand = 'mysql';
 	private static $mysqlUser = 'root';
 	private static $mysqlPassword = '123456';
 	
-	private static $tmpDir = 'C:/tmp/mysqllog';
+	//private static $tmpDir = 'C:/tmp/mysqllog';
+	private static $tmpDir = '/tmp/mysqllog';
 	
 	private static $mysqlLog;
 	
@@ -47,7 +49,7 @@ class MysqlTest extends \PHPUnit_Framework_TestCase {
 		', [':logFile' => self::$mysqlLog]);
 		$this->assertFileExists(self::$mysqlLog);
 		
-		$db->defaultDb('sakilaDb');
+		$db->defaultDb('sakiladb');
 		$this->assertLogEndsWith('Init DB	sakiladb');
 		
 		$db->charset('utf8');
@@ -193,7 +195,7 @@ class MysqlTest extends \PHPUnit_Framework_TestCase {
 		$conn = new Connection('sakila', 'password123', 'localhost', 3306);
 		$conn->query('select 1');
 		
-		$conn->defaultDb('test');
+		$conn->defaultDb('sakiladb');
 		
 		try {
 			$conn->defaultDb('bad db');

@@ -39,8 +39,7 @@ class TableTest extends \PHPUnit_Framework_TestCase {
 		$this->db->query('drop table if exists `foobar`');
 		parent::tearDown();
 	}
-
-
+	
 	public function testSelect() {
 		$t = new Table($this->db, 'foobar');
 		
@@ -101,6 +100,10 @@ class TableTest extends \PHPUnit_Framework_TestCase {
 				'title' => 'Qux',
 			],
 		], $t->select([], ['id', 'title'], ['ct' => 'desc', 'id' => 'asc'], 2));
+		
+		$this->assertSame([
+			['id' => '3'],
+		], $t->select([['id' => ['$gt' => 2]], ['id' => ['$lt' => 4]]], ['id']));
 	}
 	
 	public function testGet() {

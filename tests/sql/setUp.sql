@@ -5,10 +5,10 @@ grant super
 on *.*
 to 'sakila'@'localhost';
 
-create schema `sakilaDb`
+create schema `sakiladb`
 default character set 'utf8'
 default collate 'utf8_general_ci';
 
 grant all
-on `sakilaDb`.*
+on `sakiladb`.*
 to 'sakila'@'localhost';

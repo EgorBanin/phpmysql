@@ -174,7 +174,7 @@ $archive = $table->select([
         'ctime' => ['$lt' => time() - (60 * 60 * 24 * 365)],
     ],
     'id' => ['$nin' => [1, 4, 10]]
-], ['id', 'title', 'cdate' => Table::expr('from_unixtime(`ctime`)')], ['ctime' => -1], ['limit' => 10, 'offset' => 20]);
+], ['id', 'title', 'cdate' => 'from_unixtime(`ctime`)', ['ctime' => -1], ['limit' => 10, 'offset' => 20]);
 
 $archive = $db->query('
     select

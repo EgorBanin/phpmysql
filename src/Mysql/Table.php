@@ -28,38 +28,38 @@ class Table {
 		$this->delete([$this->pk => $id]);
 	}
 	
-	public function select(array $query = [], array $fields = ['*'], array $sort = [], $limit = 0) {
-		$params = [];
-		$sql = QueryBuilder::select($this->name, $query, $fields, $sort, $limit, $params);
-		$result = $this->db->query($sql, $params);
+	public function select(array $where = [], $fields = ['*'], $order = null, $limit = null) {
+		$builder = new QueryBuilder();
+		$sql = $builder->select($this->name, $fields, $where, $order, $limit);
+		$result = $this->db->query($sql, $builder->getParams());
 		
 		return $result->rows();
 	}
 	
-	public function selectOne(array $query = [], array $fields = ['*'], array $sort = [], $limit = 0) {
-		$rows = $this->select($query, $fields, $sort, $limit);
+	public function selectOne(array $where = [], array $fields = ['*'], array $order = []) {
+		$rows = $this->select($where, $fields, $order, 1);
 		
 		return reset($rows);
 	}
 	
 	public function insert(array $fields) {
-		$params = [];
-		$sql = QueryBuilder::insert($this->name, $fields, $params);
-		$result = $this->db->query($sql, $params);
+		$builder = new QueryBuilder();
+		$sql = $builder->insert($this->name, $fields);
+		$result = $this->db->query($sql, $builder->getParams());
 		
 		return $result->insertId();
 	}
 	
-	public function update(array $fields, array $query) {
-		$params = [];
-		$sql = QueryBuilder::update($this->name, $fields, $query, $params);
-		$this->db->query($sql, $params);
+	public function update(array $fields, array $where) {
+		$builder = new QueryBuilder();
+		$sql = $builder->update($this->name, $fields, $where);
+		$this->db->query($sql, $builder->getParams());
 	}
 	
-	public function delete(array $query) {
-		$params = [];
-		$sql = QueryBuilder::delete($this->name, $query, $params);
-		$this->db->query($sql, $params);
+	public function delete(array $where) {
+		$builder = new QueryBuilder();
+		$sql = $builder->delete($this->name, $where);
+		$this->db->query($sql, $builder->getParams());
 	}
 	
 }

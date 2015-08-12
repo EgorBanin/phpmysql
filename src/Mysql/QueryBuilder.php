@@ -101,9 +101,9 @@ class QueryBuilder {
 	}
 	
 	private function addParam($val) {
-		$this->params[$this->placeholderId] = $val;
+		$this->params[':'.$this->placeholderId] = $val;
 		
-		return $this->placeholderId++;
+		return ':'.$this->placeholderId++;
 	}
 	
 	public function getParams() {

@@ -4,7 +4,7 @@ namespace Mysql;
 
 class QueryBuilder {
 	
-	private $placeholderId;
+	private $placeholderId = 0;
 	
 	private $params = [];
 	
@@ -53,11 +53,11 @@ class QueryBuilder {
 		}
 		
 		if ($order) {
-			$sql .= self::orderBy($order); // todo
+			$sql .= self::orderBy($order);
 		}
 		
 		if ($limit) {
-			$sql .= ' limit '.self::limit($limit); // todo
+			$sql .= self::limit($limit);
 		}
 		
 		return $sql;
@@ -68,7 +68,7 @@ class QueryBuilder {
 		$sql = 'insert into '.self::quote($table);
 		
 		if (is_string(key($vals))) {
-			$sql .= 'set '.$this->set($vals);
+			$sql .= ' set '.$this->set($vals);
 		} else {
 			$keys = array_keys(reset($vals));
 			
@@ -87,7 +87,7 @@ class QueryBuilder {
 	public function update($table, $vals, $where) {
 		$this->placeholderId = 0;
 		$sql = 'update '.self::quote($table);
-		$sql .= 'set '.$this->set($vals);
+		$sql .= ' set '.$this->set($vals);
 			
 		if ($where) {
 			$sql .= ' where '.$this->buildWhere($where);
@@ -207,7 +207,7 @@ class QueryBuilder {
 			$order[] = self::quote($sort);
 		}
 		
-		return empty($order)? '' : 'order by '.implode(', ', $order);
+		return empty($order)? '' : ' order by '.implode(', ', $order);
 	}
 	
 	public static function limit($slice) {
@@ -229,7 +229,7 @@ class QueryBuilder {
 			$offset = null;
 		}
 		
-		$sql = $limit;
+		$sql = ' limit '.$limit;
 		$sql .= $offset? ' offset '.$offset : '';
 		
 		return $sql;

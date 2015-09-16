@@ -2,6 +2,10 @@
 
 namespace Mysql;
 
+/**
+ * Вспомогательный класс для сокращения объёма
+ * похожего кода тривиальных запросов
+ */
 class Table {
 	
 	protected $db;
@@ -16,18 +20,42 @@ class Table {
 		$this->pk = $pk;
 	}
 	
+	/**
+	 * Получить строку из таблицы по первичному ключу
+	 * @param int|string $id
+	 * @return array
+	 */
 	public function get($id) {
 		return $this->selectOne([$this->pk => $id]);
 	}
 	
+	/**
+	 * Обновить строку из таблицы по первичному ключу
+	 * @param int|string $id
+	 * @param array $fields
+	 * @return void
+	 */
 	public function set($id, array $fields) {
 		$this->update($fields, [$this->pk => $id]);
 	}
 	
+	/**
+	 * Удалить строку из таблицы по первичному ключу
+	 * @param int|string $id
+	 * @return void
+	 */
 	public function rm($id) {
 		$this->delete([$this->pk => $id]);
 	}
 	
+	/**
+	 * Выбрать строки из таблицы
+	 * @param array $where
+	 * @param array $fields
+	 * @param mixed $order
+	 * @param mixed $limit
+	 * @return array
+	 */
 	public function select(array $where = [], $fields = ['*'], $order = null, $limit = null) {
 		$builder = new QueryBuilder();
 		$sql = $builder->select($this->name, $fields, $where, $order, $limit);
@@ -36,12 +64,23 @@ class Table {
 		return $result->rows();
 	}
 	
-	public function selectOne(array $where = [], array $fields = ['*'], array $order = []) {
-		$rows = $this->select($where, $fields, $order, 1);
+	/**
+	 * Выбрать одну строку из таблицы
+	 * @param array $where
+	 * @param array $fields
+	 * @return array
+	 */
+	public function selectOne(array $where = [], array $fields = ['*']) {
+		$rows = $this->select($where, $fields, null, 1);
 		
 		return reset($rows);
 	}
 	
+	/**
+	 * Добавить одну или несколько строк в таблицу
+	 * @param array $fields
+	 * @return string
+	 */
 	public function insert(array $fields) {
 		$builder = new QueryBuilder();
 		$sql = $builder->insert($this->name, $fields);
@@ -50,12 +89,22 @@ class Table {
 		return $result->insertId();
 	}
 	
+	/**
+	 * Обновить строки в таблицу
+	 * @param array $fields
+	 * @param array $where
+	 * @return void
+	 */
 	public function update(array $fields, array $where) {
 		$builder = new QueryBuilder();
 		$sql = $builder->update($this->name, $fields, $where);
 		$this->db->query($sql, $builder->getParams());
 	}
 	
+	/**
+	 * Удалить строки из таблицы
+	 * @param array $where
+	 */
 	public function delete(array $where) {
 		$builder = new QueryBuilder();
 		$sql = $builder->delete($this->name, $where);

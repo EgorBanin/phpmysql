@@ -59,6 +59,36 @@ class Client {
 		return $result;
 	}
 	
+	/**
+	 * Выполнение нескольких запросов в рамках одной транзакции
+	 * @param array $queries
+	 * @throws \Mysql\Exception
+	 */
+	public function transaction(array $queries, array &$results = []) {
+		$this->connection->startTransaction();
+		
+		foreach ($queries as $query) {
+			if (is_string($query)) {
+				$sql = $query;
+				$params = [];
+			} elseif (is_array($query)) {
+				$sql = array_shift($query);
+				$params = array_shift($query)?: [];
+			} else {
+				throw new Exception('Неверный формат запроса');
+			}
+			
+			try {
+				$results[] = $this->query($sql, $params);
+			} catch (Exception $e) {
+				$this->connection->rollbackTransaction();
+				throw $e;
+			}
+		}
+		
+		return $this->connection->commitTransaction();
+	}
+	
 	private function prepare($sql, array $params, $quoteFunc) {
 		$replacePairs = [];
 		foreach ($params as $name => $val) {

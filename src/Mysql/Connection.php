@@ -159,6 +159,36 @@ class Connection {
 		return $quoted;
 	}
 	
+	public function startTransaction() {
+		if ( ! $this->mysqli) {
+			$this->connect();
+		}
+		
+		$this->mysqli->autocommit(false);
+	}
+	
+	public function commitTransaction() {
+		if ( ! $this->mysqli) {
+			$this->connect();
+		}
+		
+		$result = $this->mysqli->commit();
+		$this->mysqli->autocommit(true);
+		
+		return $result;
+	}
+	
+	public function rollbackTransaction() {
+		if ( ! $this->mysqli) {
+			$this->connect();
+		}
+		
+		$result = $this->mysqli->rollback();
+		$this->mysqli->autocommit(true);
+		
+		return $result;
+	}
+	
 	public function __destruct() {
 		$this->disconnect();
 	}

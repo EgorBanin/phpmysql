@@ -52,15 +52,15 @@ class Client {
 	 * @return Result
 	 * @throws Exception
 	 */
-	public function query($sql, array $params = []) {
-		$prepared = $this->prepare($sql, $params, [$this->connection, 'quote']);
+	public function query($sql, array $params = array()) {
+		$prepared = $this->prepare($sql, $params, array($this->connection, 'quote'));
 		$result = $this->connection->query($prepared);
 		
 		return $result;
 	}
 	
 	private function prepare($sql, array $params, $quoteFunc) {
-		$replacePairs = [];
+		$replacePairs = array();
 		foreach ($params as $name => $val) {
 			$replacePairs[$name] = call_user_func($quoteFunc, $val);
 		}

@@ -17,18 +17,18 @@ class Table {
 	}
 	
 	public function get($id) {
-		return $this->selectOne([$this->pk => $id]);
+		return $this->selectOne(array($this->pk => $id));
 	}
 	
 	public function set($id, array $fields) {
-		$this->update($fields, [$this->pk => $id]);
+		$this->update($fields, array($this->pk => $id));
 	}
 	
 	public function rm($id) {
-		$this->delete([$this->pk => $id]);
+		$this->delete(array($this->pk => $id));
 	}
 	
-	public function select(array $where = [], $fields = ['*'], $order = null, $limit = null) {
+	public function select(array $where = array(), $fields = array('*'), $order = null, $limit = null) {
 		$builder = new QueryBuilder();
 		$sql = $builder->select($this->name, $fields, $where, $order, $limit);
 		$result = $this->db->query($sql, $builder->getParams());
@@ -36,8 +36,8 @@ class Table {
 		return $result->rows();
 	}
 	
-	public function selectOne(array $where = [], array $fields = ['*'], array $order = []) {
-		$rows = $this->select($where, $fields, $order, 1);
+	public function selectOne(array $where = array(), array $fields = array('*')) {
+		$rows = $this->select($where, $fields, null, 1);
 		
 		return reset($rows);
 	}

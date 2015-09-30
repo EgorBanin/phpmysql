@@ -26,7 +26,7 @@ class Table {
 	 * @return array
 	 */
 	public function get($id) {
-		return $this->selectOne([$this->pk => $id]);
+		return $this->selectOne(array($this->pk => $id));
 	}
 	
 	/**
@@ -36,7 +36,7 @@ class Table {
 	 * @return void
 	 */
 	public function set($id, array $fields) {
-		$this->update($fields, [$this->pk => $id]);
+		$this->update($fields, array($this->pk => $id));
 	}
 	
 	/**
@@ -45,7 +45,7 @@ class Table {
 	 * @return void
 	 */
 	public function rm($id) {
-		$this->delete([$this->pk => $id]);
+		$this->delete(array($this->pk => $id));
 	}
 	
 	/**
@@ -56,7 +56,7 @@ class Table {
 	 * @param mixed $limit
 	 * @return array
 	 */
-	public function select(array $where = [], $fields = ['*'], $order = null, $limit = null) {
+	public function select(array $where = array(), $fields = array('*'), $order = null, $limit = null) {
 		$builder = new QueryBuilder();
 		$sql = $builder->select($this->name, $fields, $where, $order, $limit);
 		$result = $this->db->query($sql, $builder->getParams());
@@ -70,7 +70,7 @@ class Table {
 	 * @param array $fields
 	 * @return array
 	 */
-	public function selectOne(array $where = [], array $fields = ['*']) {
+	public function selectOne(array $where = array(), array $fields = array('*')) {
 		$rows = $this->select($where, $fields, null, 1);
 		
 		return reset($rows);

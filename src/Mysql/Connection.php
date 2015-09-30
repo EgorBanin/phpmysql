@@ -99,7 +99,7 @@ class Connection {
 			throw new Exception("Не удалось выполнить запрос: $sql\n".$this->mysqli->error, Exception::CODE_QUERY_ERROR, null, $sql);
 		}
 		
-		$rows = [];
+		$rows = array();
 		if ($mysqliResult instanceof \Mysqli_Result) {
 			while ($row = $mysqliResult->fetch_assoc()) {
 				$rows[] = $row;
@@ -133,7 +133,7 @@ class Connection {
 		} elseif (is_null($val)) {
 			$quoted = 'null';
 		} elseif (is_array($val)) {
-			$quotedArr =[];
+			$quotedArr = array();
 			
 			foreach ($val as $innerVal) {
 				$str = $this->quote($innerVal);

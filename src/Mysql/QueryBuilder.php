@@ -6,14 +6,14 @@ class QueryBuilder {
 	
 	private $placeholderId = 0;
 	
-	private $params = [];
+	private $params = array();
 	
-	private $whereOps = [
+	private $whereOps = array(
 		'$and' => 'and',
 		'$or' => 'or',
-	];
+	);
 	
-	private $ops = [
+	private $ops = array(
 		'$eq' => '=',
 		'$ne' => '!=',
 		'$lt' => '<',
@@ -23,13 +23,13 @@ class QueryBuilder {
 		'$between' => 'between',
 		'$in' => 'in',
 		'$nin' => 'not in',
-	];
+	);
 	
-	public function select($table, $fields = ['*'], array $where = [], $order = null, $limit = null) {
+	public function select($table, $fields = array('*'), array $where = array(), $order = null, $limit = null) {
 		$this->placeholderId = 0;
 		
 		$fields = (array) $fields;
-		$quotedFields = [];
+		$quotedFields = array();
 		foreach ($fields as $alias => $field) {
 			if ($field !== '*') {
 				$field = self::quote($field);
@@ -72,7 +72,7 @@ class QueryBuilder {
 		} else {
 			$keys = array_keys(reset($vals));
 			
-			$names = [];
+			$names = array();
 			foreach ($keys as $name) {
 				$names[] = self::quote($name);
 			}
@@ -97,7 +97,7 @@ class QueryBuilder {
 	}
 	
 	public static function quote($str) {
-		return '`'.strtr($str, ['`' => '``']).'`';
+		return '`'.strtr($str, array('`' => '``')).'`';
 	}
 	
 	private function addParam($val) {
@@ -117,7 +117,7 @@ class QueryBuilder {
 	 * @return array where-выражение и параметры
 	 */
 	public function buildWhere(array $where, $op = 'and') {
-		$conditions = [];
+		$conditions = array();
 		foreach ($where as $k => $v) {
 			if (array_key_exists($k, $this->whereOps) && is_array($v)) {
 				// рекурсия
@@ -170,7 +170,7 @@ class QueryBuilder {
 	}
 	
 	public function set($vals) {
-		$set = [];
+		$set = array();
 		foreach ($vals as $filed => $val) {
 			$set[] = self::quote($filed).' = '.$this->addParam($val);
 		}
@@ -190,10 +190,11 @@ class QueryBuilder {
 	}
 	
 	public static function orderBy($sort) {
-		$order = [];
+		$order = array();
 		
 		if (is_array($sort)) {
-			$isAssoc =  ! empty(array_filter(array_keys($sort), 'is_string'));
+			$stringKeys = array_filter(array_keys($sort), 'is_string');
+			$isAssoc =  ! empty($stringKeys);
 			
 			foreach ($sort as $k => $v) {
 				if ($isAssoc) {
@@ -212,7 +213,8 @@ class QueryBuilder {
 	
 	public static function limit($slice) {
 		if (is_array($slice)) {
-			$isAssoc =  ! empty(array_filter(array_keys($slice), 'is_string'));
+			$stringKeys = array_filter(array_keys($slice), 'is_string');
+			$isAssoc =  ! empty($stringKeys);
 			
 			if ($isAssoc) {
 				$limit =  (int) $slice['limit'];

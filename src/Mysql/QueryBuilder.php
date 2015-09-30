@@ -193,7 +193,8 @@ class QueryBuilder {
 		$order = array();
 		
 		if (is_array($sort)) {
-			$isAssoc =  ! empty(array_filter(array_keys($sort), 'is_string'));
+			$stringKeys = array_filter(array_keys($sort), 'is_string');
+			$isAssoc =  ! empty($stringKeys);
 			
 			foreach ($sort as $k => $v) {
 				if ($isAssoc) {
@@ -212,7 +213,8 @@ class QueryBuilder {
 	
 	public static function limit($slice) {
 		if (is_array($slice)) {
-			$isAssoc =  ! empty(array_filter(array_keys($slice), 'is_string'));
+			$stringKeys = array_filter(array_keys($slice), 'is_string');
+			$isAssoc =  ! empty($stringKeys);
 			
 			if ($isAssoc) {
 				$limit =  (int) $slice['limit'];

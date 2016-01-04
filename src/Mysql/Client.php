@@ -64,16 +64,16 @@ class Client {
 	 * @param array $queries
 	 * @throws \Mysql\Exception
 	 */
-	public function transaction(array $queries, array &$results = []) {
+	public function transaction(array $queries, array &$results = array()) {
 		$this->connection->startTransaction();
 		
 		foreach ($queries as $query) {
 			if (is_string($query)) {
 				$sql = $query;
-				$params = [];
+				$params = array();
 			} elseif (is_array($query)) {
 				$sql = array_shift($query);
-				$params = array_shift($query)?: [];
+				$params = array_shift($query)?: array();
 			} else {
 				throw new Exception('Неверный формат запроса');
 			}

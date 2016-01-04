@@ -125,7 +125,7 @@ $table->delete(['ISBN' => '978-5-459-01720-5']);
 ##### select([array $query = [][, array $fields = ['*'][, mixed $sort = null[, mixed $limit = null]]]])
 Выбирает строки соответствующие запросу.
 
-##### selectOne([array $query = [][, array $fields = ['*'][, mixed $sort = null]]])
+##### selectOne([array $query = [][, array $fields = ['*']]])
 Выбирает только одну строку соответствующую запросу.
 
 ##### update(array $fields, array $query)
@@ -197,7 +197,7 @@ $archive = $table->select([
         'ctime' => ['$lt' => time() - (60 * 60 * 24 * 365)],
     ],
     'id' => ['$nin' => [1, 4, 10]]
-], ['id', 'title', 'ctime', ['ctime' => -1], ['limit' => 10, 'offset' => 20]);
+], ['id', 'title', 'ctime'], ['ctime' => -1], ['limit' => 10, 'offset' => 20]);
 
 $archive = $db->query('
     select

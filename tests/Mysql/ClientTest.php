@@ -34,8 +34,26 @@ class ClientTest extends \PHPUnit_Framework_TestCase {
 			['Qux', 'Qux content', 1438168961, 1438168963],
 		]]);
 	}
-	
+
 	public function testTransaction() {
+		$this->assertArraySubset([
+			'id' => '1',
+			'ut' => '1438168960',
+		], $this->db->table('foobar')->get(1));
+
+		$this->db->transaction([
+			'delete from `foobar` where `id` = 1',
+			['
+				update `foobar`
+				set `ut` = :ut
+				where `id` = :id
+			', [':ut' => 0, ':id' => 1]],
+		]);
+		
+		$this->assertSame(null, $this->db->table('foobar')->get(1));
+	}
+	
+	public function testBadTransaction() {
 		$this->assertSame([
 			'id' => '1',
 			'ut' => '1438168960',

@@ -93,7 +93,7 @@ $db->transaction([
 Для сокращения объёма похожего кода запросов можно воспользоваться вспомогательным классом Table.
 
 ~~~php
-$table = new Mysql\Table($db, 'books');
+$table = $db->table('books');
 $book = $table->get(1);
 $books = $table->select(['author' => 'Мартин Фаулер']);
 $favoriteBook = $table->selectOne(['title' => 'Совершенный код']);

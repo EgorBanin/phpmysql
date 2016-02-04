@@ -23,7 +23,7 @@ class Table {
 	/**
 	 * Получить строку из таблицы по первичному ключу
 	 * @param int|string $id
-	 * @return array
+	 * @return array|null
 	 */
 	public function get($id) {
 		return $this->selectOne(array($this->pk => $id));
@@ -68,12 +68,12 @@ class Table {
 	 * Выбрать одну строку из таблицы
 	 * @param array $where
 	 * @param array $fields
-	 * @return array
+	 * @return array|null
 	 */
 	public function selectOne(array $where = array(), array $fields = array('*')) {
 		$rows = $this->select($where, $fields, null, 1);
 		
-		return reset($rows);
+		return reset($rows)?: null;
 	}
 	
 	/**

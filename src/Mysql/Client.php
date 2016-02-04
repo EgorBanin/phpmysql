@@ -88,6 +88,16 @@ class Client {
 		
 		return $this->connection->commitTransaction();
 	}
+
+	/**
+	 * Шорткат для new Table
+	 * @param string $name имя таблицы
+	 * @param string $pk имя столбца, по которому построен первичный ключ
+	 * @return \Mysql\Table
+	 */
+	public function table($name, $pk = 'id') {
+		return new Table($this, $name, $pk);
+	}
 	
 	private function prepare($sql, array $params, $quoteFunc) {
 		$replacePairs = array();

@@ -116,7 +116,7 @@ class TableTest extends \PHPUnit_Framework_TestCase {
 			'ct' => '1438168961',
 			'ut' => '1438168962',
 		], $t->get(3));
-		$this->assertFalse($t->get(100500));
+		$this->assertNull($t->get(100500));
 	}
 	
 	public function testSet() {

@@ -104,6 +104,10 @@ class TableTest extends \PHPUnit_Framework_TestCase {
 		$this->assertSame([
 			['id' => '3'],
 		], $t->select([['id' => ['$gt' => 2]], ['id' => ['$lt' => 4]]], ['id']));
+
+		$this->assertSame([
+			['id' => '4'],
+		], $t->select(['content' => ['$like' => '%ux%']], ['id']));
 	}
 	
 	public function testGet() {

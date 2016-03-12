@@ -23,6 +23,7 @@ class QueryBuilder {
 		'$between' => 'between',
 		'$in' => 'in',
 		'$nin' => 'not in',
+		'$like' => 'like'
 	);
 	
 	public function select($table, $fields = array('*'), array $where = array(), $order = null, $limit = null) {

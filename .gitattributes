@@ -3,3 +3,4 @@
 /tests export-ignore
 README.md export-ignore
 UNLICENSE export-ignore
+composer.json export-ignore

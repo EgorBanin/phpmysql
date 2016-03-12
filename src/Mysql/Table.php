@@ -86,7 +86,7 @@ class Table {
 		$sql = $builder->insert($this->name, $fields);
 		$result = $this->db->query($sql, $builder->getParams());
 		
-		return $result->insertId();
+		return $result->insertedId();
 	}
 	
 	/**

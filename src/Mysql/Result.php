@@ -13,13 +13,13 @@ class Result {
 	
 	private $affectedRows;
 	
-	private $insertId;
+	private $insertedId;
 	
-	public function __construct($sql, array $rows, $affectedRows, $insertId) {
+	public function __construct($sql, array $rows, $affectedRows, $insertedId) {
 		$this->sql = $sql;
 		$this->rows = $rows;
 		$this->affectedRows = $affectedRows;
-		$this->insertId = $insertId;
+		$this->insertedId = $insertedId;
 	}
 	
 	/**
@@ -53,8 +53,8 @@ class Result {
 	 * первой вставленной строки.
 	 * @return int|string
 	 */
-	public function insertId() {
-		return $this->insertId;
+	public function insertedId() {
+		return $this->insertedId;
 	}
 	
 	/**

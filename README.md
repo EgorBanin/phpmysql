@@ -41,7 +41,7 @@ $result = $db->query('
 	':author' => 'Стив Макконнелл'
 ]);
 
-$id = $result->insertId();
+$id = $result->insertedId();
 $affectedRows = $result->affectedRows();
 ~~~
 

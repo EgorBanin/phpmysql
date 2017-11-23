@@ -2,7 +2,7 @@
 
 namespace Mysql;
 
-class ResutTest extends \PHPUnit_Framework_TestCase {
+class ResutTest extends \PHPUnit\Framework\TestCase {
 	
 	public function testRow() {
 		$result = new Result('', [

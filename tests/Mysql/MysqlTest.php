@@ -6,12 +6,7 @@ namespace Mysql;
  * Тест сравнивает ожидаемые запросы с теми, что попадают в лог запросов MySQL.
  * Также проверяются результаты.
  */
-class MysqlTest extends \PHPUnit_Framework_TestCase {
-	
-	//private static $mysqlCommand = '"C:\Program Files\MySQL\MySQL Server 5.6\bin\mysql"';
-	private static $mysqlCommand = 'mysql';
-	private static $mysqlUser = 'root';
-	private static $mysqlPassword = '123456';
+class MysqlTest extends MysqlTestCase {
 	
 	//private static $tmpDir = 'C:/tmp/mysqllog';
 	private static $tmpDir = '/tmp/mysqllog';
@@ -19,8 +14,7 @@ class MysqlTest extends \PHPUnit_Framework_TestCase {
 	private static $mysqlLog;
 	
 	public static function setUpBeforeClass() {
-		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/../sql/setUp.sql';
-		exec($command);
+		parent::setUpBeforeClass();
 		
 		mkdir(self::$tmpDir);
 		if (stripos(PHP_OS, 'win') !== 0) {
@@ -30,8 +24,8 @@ class MysqlTest extends \PHPUnit_Framework_TestCase {
 	}
 	
 	public static function tearDownAfterClass() {
-		$command = self::$mysqlCommand.' -u'.self::$mysqlUser.' -p'.self::$mysqlPassword.' < '.__DIR__.'/../sql/tearDown.sql';
-		exec($command);
+		parent::tearDownAfterClass();
+
 		@unlink(self::$mysqlLog);
 		rmdir(self::$tmpDir);
 	}
@@ -187,8 +181,11 @@ class MysqlTest extends \PHPUnit_Framework_TestCase {
 		$this->assertSame('(\'qux\', 1), (\'quux\', 2)', $conn->quote([['qux', 1], ['quux', 2]]));
 		$this->assertSame("'Hello world'", $conn->quote(new \SimpleXmlElement('<root>Hello world</root>')));
 		
-		$this->setExpectedException('\Mysql\Exception');
-		$conn->quote(new \stdClass);
+		$e = null;
+		try {
+			$conn->quote(new \stdClass);
+		} catch(Exception $e) {}
+		$this->assertInstanceOf(Exception::class, $e);
 	}
 	
 	public function testDefaultDb() {
@@ -197,10 +194,11 @@ class MysqlTest extends \PHPUnit_Framework_TestCase {
 		
 		$conn->defaultDb('sakiladb');
 		
+		$e = null;
 		try {
 			$conn->defaultDb('bad db');
-			$this->fail('Expected exception not thrown');
 		} catch (Exception $e) {}
+		$this->assertInstanceOf(Exception::class, $e);
 	}
 	
 	public function testCharset() {
@@ -209,10 +207,11 @@ class MysqlTest extends \PHPUnit_Framework_TestCase {
 		
 		$conn->charset('utf8');
 		
+		$e = null;
 		try {
 			$conn->charset('bad charset');
-			$this->fail('Expected exception not thrown');
 		} catch (Exception $e) {}
+		$this->assertInstanceOf(Exception::class, $e);
 	}
 	
 }

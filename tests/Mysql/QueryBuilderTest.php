@@ -2,7 +2,7 @@
 
 namespace Mysql;
 
-class QueryBuilderTest extends \PHPUnit_Framework_TestCase {
+class QueryBuilderTest extends \PHPUnit\Framework\TestCase {
 	
 	public function testWhere() {
 		$qb = new QueryBuilder();

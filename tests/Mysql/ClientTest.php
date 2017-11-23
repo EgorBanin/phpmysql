@@ -2,15 +2,13 @@
 
 namespace Mysql;
 
-class ClientTest extends \PHPUnit_Framework_TestCase {
+class ClientTest extends MysqlTestCase {
 	
 	protected $db;
 	
 	public function setUp() {
 		parent::setUp();
-		$this->db = Client::init('', '')
-			->defaultDb('test')
-			->charset('utf8');
+		$this->db = $this->getDb();
 		$this->db->query('drop table if exists `foobar`');
 		$this->db->query('
 			create table `foobar` (

@@ -147,6 +147,8 @@ class QueryBuilder {
 			} else {
 				$op = 'in';
 			}
+		} elseif (is_null($val)) {
+			$op = 'is';
 		} else {
 			$op = '=';
 		}

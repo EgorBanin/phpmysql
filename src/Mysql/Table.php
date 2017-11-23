@@ -36,7 +36,7 @@ class Table {
 	 * @return void
 	 */
 	public function set($id, array $fields) {
-		$this->update($fields, array($this->pk => $id));
+		$this->update(array($this->pk => $id), $fields);
 	}
 	
 	/**
@@ -91,14 +91,16 @@ class Table {
 	
 	/**
 	 * Обновить строки в таблицу
-	 * @param array $fields
 	 * @param array $where
+	 * @param array $fields
 	 * @return void
 	 */
-	public function update(array $fields, array $where) {
+	public function update(array $where, array $fields) {
 		$builder = new QueryBuilder();
 		$sql = $builder->update($this->name, $fields, $where);
-		$this->db->query($sql, $builder->getParams());
+		$result = $this->db->query($sql, $builder->getParams());
+
+		return $result->affectedRows();
 	}
 	
 	/**

@@ -14,8 +14,12 @@ class Client {
 		$this->connection = $connection;
 	}
 	
-	public static function init($username, $password, $host = 'localhost', $port = 3306) {
+	public static function init($username, $password, $host = 'localhost', $port = 3306, $lazyConnect = true) {
 		$connection = new Connection($username, $password, $host, $port);
+
+		if ( ! $lazyConnect) {
+			$connection->connect();
+		}
 		
 		return new self($connection);
 	}

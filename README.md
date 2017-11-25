@@ -105,7 +105,7 @@ $book = $table->get(1);
 $books = $table->select(['author' => 'Мартин Фаулер']);
 $favoriteBook = $table->selectOne(['title' => 'Совершенный код']);
 $table->set($favoriteBook['id'], ['ISBN' => '978-5-469-00822-4']);
-$table->update(['ISBN' => '978-5-469-00822-4'], ['title' => 'Совершенный код']);
+$table->update(['title' => 'Совершенный код'], ['ISBN' => '978-5-469-00822-4']);
 $id = $table->insert([
     'ISBN' => '978-5-459-01720-5',
     'title' => 'Приемы объектно-ориентированного проектирования',
@@ -135,7 +135,7 @@ $table->delete(['ISBN' => '978-5-459-01720-5']);
 ##### selectOne([array $query = [][, array $fields = ['*']]])
 Выбирает только одну строку соответствующую запросу.
 
-##### update(array $fields, array $query)
+##### update(array $query, array $fields)
 Обновляет строки соответствующие запросу.
 
 ##### delete(array $query)

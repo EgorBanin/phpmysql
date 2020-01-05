@@ -1,9 +1,5 @@
-create user 'sakila'@'localhost'
-identified by 'password123';
-
-grant super
-on *.*
-to 'sakila'@'localhost';
+create user 'sakila'@'%'
+identified by 'passw0rd';
 
 create schema `sakiladb`
 default character set 'utf8'
@@ -11,4 +7,4 @@ default collate 'utf8_general_ci';
 
 grant all
 on `sakiladb`.*
-to 'sakila'@'localhost';
+to 'sakila'@'%';

@@ -149,7 +149,7 @@ class Connection {
 		} else {
 			try {
 				$strVal = (string) $val;
-			} catch (\Exception $e) {
+			} catch (\Throwable $e) {
 				throw new Exception($e->getMessage(), Exception::CODE_QUOTE_ERROR, $e);
 			}
 			

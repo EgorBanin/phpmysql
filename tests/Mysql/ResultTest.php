@@ -1,11 +1,11 @@
 <?php
 
-namespace Mysql;
+namespace tests\Mysql;
 
 class ResutTest extends \PHPUnit\Framework\TestCase {
 	
 	public function testRow() {
-		$result = new Result('', [
+		$result = new \Mysql\Result('', [
 			['id' => 1, 'text' => 'abc'],
 			['id' => 2, 'text' => 'def'],
 			['id' => 3, 'text' => 'ghi']

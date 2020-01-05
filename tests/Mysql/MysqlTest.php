@@ -1,6 +1,6 @@
 <?php
 
-namespace Mysql;
+namespace tests\Mysql;
 
 /**
  * Тест сравнивает ожидаемые запросы с теми, что попадают в лог запросов MySQL.
@@ -8,34 +8,14 @@ namespace Mysql;
  */
 class MysqlTest extends MysqlTestCase {
 	
-	//private static $tmpDir = 'C:/tmp/mysqllog';
-	private static $tmpDir = '/tmp/mysqllog';
-	
-	private static $mysqlLog;
-	
-	public static function setUpBeforeClass() {
-		parent::setUpBeforeClass();
-		
-		mkdir(self::$tmpDir);
-		if (stripos(PHP_OS, 'win') !== 0) {
-			@exec('chmod 2777 '.self::$tmpDir); // не получилось установить SGID по-другому
-		}
-		self::$mysqlLog = self::$tmpDir.'/mysql.log';
-	}
-	
-	public static function tearDownAfterClass() {
-		parent::tearDownAfterClass();
-
-		@unlink(self::$mysqlLog);
-		rmdir(self::$tmpDir);
-	}
+	private static $mysqlLog = '/var/log/mysql-log/mysql.log';
 	
 	private function assertLogEndsWith($string) {
 		$this->assertStringEndsWith(trim($string)."\n", file_get_contents(self::$mysqlLog));
 	}
 	
 	public function testQuery() {
-		$db = Client::init('sakila', 'password123', 'localhost');
+		$db = \Mysql\Client::init('root', 'root', $this->host);
 		$db->query('
 			set global
 				general_log_file = :logFile,
@@ -74,7 +54,7 @@ class MysqlTest extends MysqlTestCase {
 			engine InnoDB
 			comment \'Книги\'
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new \Mysql\Result('
 			create table `Book` (
 				`id` int unsigned not null auto_increment,
 				`ISBN` char(17) binary not null,
@@ -101,7 +81,7 @@ class MysqlTest extends MysqlTestCase {
 				`ISBN`, `title`, `author`
 			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\')
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new \Mysql\Result('
 			insert into `Book` (
 				`ISBN`, `title`, `author`
 			) values (\'978-5-7502-0064-1\', \'Совершенный код\', \'Стив Макконнелл\'), (\'978-5-93286-153-0\', \'MySQL. Оптимизация производительности\', \'Бэрон Шварц, Петр Зайцев, Вадим Ткаченко, Джереми Д. Зооднай, Дерек Дж. Баллинг, Арьен Ленц\');
@@ -118,7 +98,7 @@ class MysqlTest extends MysqlTestCase {
 			from `Book`
 			where `ISBN` = \'978-5-93286-153-0\'
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new \Mysql\Result('
 			select *
 			from `Book`
 			where `ISBN` = \'978-5-93286-153-0\';
@@ -145,7 +125,7 @@ class MysqlTest extends MysqlTestCase {
 			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
 			`author` = \'\'
 		');
-		$this->assertEquals(new Result('
+		$this->assertEquals(new \Mysql\Result('
 			insert into `Book` set
 			`ISBN` = \'000-0-0000-0000-0\',
 			`title` = \'\\"\\\'\\\\/?&%@=>;\\0\',
@@ -156,18 +136,18 @@ class MysqlTest extends MysqlTestCase {
 		try {
 			$db->query('');
 			$this->fail('Expected exception not thrown');
-		} catch (Exception $e) {}
+		} catch (\Mysql\Exception $e) {}
 		
 		try {
 			$db->query('xxx :var', [':var' => 'foo']);
 			$this->fail('Expected exception not thrown');
-		} catch (Exception $e) {
+		} catch (\Mysql\Exception $e) {
 			$this->assertSame('xxx \'foo\'', $e->sql);
 		}
 	}
 	
 	public function testQuote() {
-		$conn = new Connection('sakila', 'password123', 'localhost', 3306);
+		$conn = new \Mysql\Connection($this->user, $this->password, $this->host, 3306);
 		
 		$this->assertSame("'Foo'", $conn->quote('Foo'));
 		$this->assertSame("'\\'Bar\\''", $conn->quote("'Bar'"));
@@ -184,25 +164,25 @@ class MysqlTest extends MysqlTestCase {
 		$e = null;
 		try {
 			$conn->quote(new \stdClass);
-		} catch(Exception $e) {}
-		$this->assertInstanceOf(Exception::class, $e);
+		} catch(\Mysql\Exception $e) {}
+		$this->assertInstanceOf(\Mysql\Exception::class, $e);
 	}
 	
 	public function testDefaultDb() {
-		$conn = new Connection('sakila', 'password123', 'localhost', 3306);
+		$conn = new \Mysql\Connection($this->user, $this->password, $this->host, 3306);
 		$conn->query('select 1');
 		
-		$conn->defaultDb('sakiladb');
+		$conn->defaultDb($this->dbName);
 		
 		$e = null;
 		try {
 			$conn->defaultDb('bad db');
-		} catch (Exception $e) {}
-		$this->assertInstanceOf(Exception::class, $e);
+		} catch (\Mysql\Exception $e) {}
+		$this->assertInstanceOf(\Mysql\Exception::class, $e);
 	}
 	
 	public function testCharset() {
-		$conn = new Connection('sakila', 'password123', 'localhost', 3306);
+		$conn = new \Mysql\Connection($this->user, $this->password, $this->host, 3306);
 		$conn->query('select 1');
 		
 		$conn->charset('utf8');
@@ -210,8 +190,8 @@ class MysqlTest extends MysqlTestCase {
 		$e = null;
 		try {
 			$conn->charset('bad charset');
-		} catch (Exception $e) {}
-		$this->assertInstanceOf(Exception::class, $e);
+		} catch (\Mysql\Exception $e) {}
+		$this->assertInstanceOf(\Mysql\Exception::class, $e);
 	}
 	
 }

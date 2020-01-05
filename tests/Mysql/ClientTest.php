@@ -1,6 +1,6 @@
 <?php
 
-namespace Mysql;
+namespace tests\Mysql;
 
 class ClientTest extends MysqlTestCase {
 	
@@ -73,7 +73,7 @@ class ClientTest extends MysqlTestCase {
 				', [':ut' => 0, ':id' => 1]],
 				'wrong query',
 			]);
-		} catch (Exception $e) {
+		} catch (\Mysql\Exception $e) {
 			//
 		}
 		

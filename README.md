@@ -16,8 +16,8 @@
 <?php
 
 $db = Mysql\Client::init('username', 'password')
-    ->defaultDb('Sakila')
-    ->charset('utf8');
+	->defaultDb('Sakila')
+	->charset('utf8');
 ~~~
 
 Подключение к базе данных создаётся не сразу, а при первом запросе.
@@ -75,19 +75,32 @@ $result = $db->query('
 ### Транзакции
 
 ~~~php
-$sum = 100;
-$db->transaction([
-    ['
-        update `accounts`
-        set `amount` = `amount` - :sum
-        where `id` = :from
-    ', [':sum' => $sum, ':from' => 1]],
-    ['
-        update `accounts`
-        set `amount` = `amount` + :sum
-        where `id` = :to
-    ', [':sum' => $sum, ':to' => 2]]
-]);
+$db->transaction(function($db, $commit, $rollback) {
+	$from = 1;
+	$to = 2;
+	$sum = 100;
+
+	$account = $db->query('
+		select for update from `accounts`
+		where `id` = :id
+	', [':id' => $from])->row();
+	if ($account['amount'] < $sum) {
+		return $rollback(); // или можно просто бросить исключение
+	}
+
+	$db->query('
+		update `accounts`
+		set `amount` = `amount` - :sum
+		where `id` = :from
+	', [':sum' => $sum, ':from' => $from]);
+	$db->query('
+		update `accounts`
+		set `amount` = `amount` + :sum
+		where `id` = :to
+	', [':sum' => $sum, ':to' => $to]);
+	
+	return $commit(); // можно и не вызывать коммит, он будет вызван автоатически
+});
 ~~~
 
 ### Обработка ошибок
@@ -107,9 +120,9 @@ $favoriteBook = $table->selectOne(['title' => 'Совершенный код']);
 $table->set($favoriteBook['id'], ['ISBN' => '978-5-469-00822-4']);
 $table->update(['title' => 'Совершенный код'], ['ISBN' => '978-5-469-00822-4']);
 $id = $table->insert([
-    'ISBN' => '978-5-459-01720-5',
-    'title' => 'Приемы объектно-ориентированного проектирования',
-    'author' => 'Эрих Гамма, Ричард Хелм, Ральф Джонсон, Джон Влиссидес'
+	'ISBN' => '978-5-459-01720-5',
+	'title' => 'Приемы объектно-ориентированного проектирования',
+	'author' => 'Эрих Гамма, Ричард Хелм, Ральф Джонсон, Джон Влиссидес'
 ]);
 $table->rm($id);
 $table->delete(['ISBN' => '978-5-459-01720-5']);
@@ -202,34 +215,34 @@ $table->delete(['ISBN' => '978-5-459-01720-5']);
 ~~~php
 $table = new Mysql\Table($db, 'posts');
 $archive = $table->select([
-    'active' => true,
-    '$or' => [
-        'archive' => true,
-        'ctime' => ['$lt' => time() - (60 * 60 * 24 * 365)],
-    ],
-    'id' => ['$nin' => [1, 4, 10]]
+	'active' => true,
+	'$or' => [
+		'archive' => true,
+		'ctime' => ['$lt' => time() - (60 * 60 * 24 * 365)],
+	],
+	'id' => ['$nin' => [1, 4, 10]]
 ], ['id', 'title', 'ctime'], ['ctime' => -1], ['limit' => 10, 'offset' => 20]);
 
 $archive = $db->query('
-    select
-        `id`,
-        `title`,
-        from_unixtime(`ctime`) as `cdate`
-    from `posts`
-    where
-        `active` = true
-        and (
-            `archive` = true
-            or `ctime` < :timeLimit
-        )
-        and `id` not in :exclusions
-    order by `ctime` desc
-    limit :limit offset :offset
+	select
+		`id`,
+		`title`,
+		from_unixtime(`ctime`) as `cdate`
+	from `posts`
+	where
+		`active` = true
+		and (
+			`archive` = true
+			or `ctime` < :timeLimit
+		)
+		and `id` not in :exclusions
+	order by `ctime` desc
+	limit :limit offset :offset
 ', [
-    ':timeLimit' => time() - (60 * 60 * 24 * 365),
-    ':exclusions' => [1, 4, 10],
-    ':limit' => 10,
-    ':offset' => 20,
+	':timeLimit' => time() - (60 * 60 * 24 * 365),
+	':exclusions' => [1, 4, 10],
+	':limit' => 10,
+	':offset' => 20,
 ]);
 ~~~
 
@@ -247,16 +260,16 @@ $archive = $db->query('
 $hotPosts = $db->query('SELECT t1.*, t2.name as autor_name FROM posts as t1 INNER JOIN authors as t2 ON t1.author_id = t2.id WHERE t1.active = 1 AND t1.views > 10000 ORDER BY t1.views DESC LIMIT 10')->rows();
 
 $hotPosts = $db->query('
-    select
-        `posts`.*,
-        `authors`.`name` as `authorName`
-    from `posts`
-    inner join `authors` on `authors`.`id` = `posts`.`authorId`
-    where
-        `posts`.`active` = true
-        and `posts`.`views` > 10000
-    order by `posts`.`views` desc
-    limit 10
+	select
+		`posts`.*,
+		`authors`.`name` as `authorName`
+	from `posts`
+	inner join `authors` on `authors`.`id` = `posts`.`authorId`
+	where
+		`posts`.`active` = true
+		and `posts`.`views` > 10000
+	order by `posts`.`views` desc
+	limit 10
 ')->rows();
 ~~~
 

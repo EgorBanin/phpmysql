@@ -65,21 +65,42 @@ class Client {
 
 	/**
 	 * Выполнение функции в рамках транзакции
+	 * В качества аргумента принимает функцию типа
+	 * function(\Mysql\Client $db, callable $commit, callable $rollback) { ... }
+	 * Исключение внутри функции вызовет автоматический откат транзакции, завершение без ошибок -- автоматический коммит.
 	 * @param callable $func
 	 * @throws \Mysql\Exception
-	 * @return bool
+	 * @return mixed результат вызова $func
 	 */
-	public function transaction(callable $func): bool {
-		$this->connection->startTransaction();
+	public function transaction(callable $func) {
+		$connection = $this->connection;
+		$connection->startTransaction();
+
+		$commitResult = null;
+		$commit = static function() use($connection, &$commitResult): bool {
+			$commitResult = $connection->commitTransaction();
+			return $commitResult;
+		};
+		$rollbackResult = null;
+		$rollback = static function() use($connection, &$rollbackResult): bool {
+			$rollbackResult = $connection->rollbackTransaction();
+			return $rollbackResult;
+		};
 
 		try {
-			$func($this);
+			$result = $func($this, $commit, $rollback);
 		} catch (\Throwable $e) {
-			$this->connection->rollbackTransaction();
-			throw new Exception('Не удалось выполнить транзакцию.', 0, $e);
+			if ($commitResult === null && $rollbackResult === null) {
+				$connection->rollbackTransaction();
+			}
+			throw new Exception('Не удалось выполнить транзакцию: ' . $e->getMessage(), 0, $e);
 		}
 
-		return $this->connection->commitTransaction();
+		if ($commitResult === null && $rollbackResult === null) {
+			$connection->commitTransaction();
+		}
+
+		return $result;
 	}
 
 	/**

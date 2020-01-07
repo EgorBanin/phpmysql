@@ -133,17 +133,18 @@ class MysqlTest extends MysqlTestCase {
 		', [], 1, 3), $result);
 		
 		// exception
+		$actualException = null;
 		try {
 			$db->query('');
-			$this->fail('Expected exception not thrown');
-		} catch (\Mysql\Exception $e) {}
+		} catch (\Mysql\Exception $actualException) {}
+		$this->assertNotNull($actualException);
 		
+		$actualException = null;
 		try {
 			$db->query('xxx :var', [':var' => 'foo']);
-			$this->fail('Expected exception not thrown');
-		} catch (\Mysql\Exception $e) {
-			$this->assertSame('xxx \'foo\'', $e->sql);
-		}
+		} catch (\Mysql\Exception $actualException) {}
+		$this->assertNotNull($actualException);
+		$this->assertSame('xxx \'foo\'', $actualException->sql);
 	}
 	
 	public function testQuote() {

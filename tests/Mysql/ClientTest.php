@@ -88,5 +88,42 @@ class ClientTest extends MysqlTestCase {
 			where id = 1
 		')->row());
 	}
+
+	public function testTransactionCommit() {
+		$this->assertArraySubset([
+			'id' => '1',
+			'ut' => '1438168960',
+		], $this->db->table('foobar')->get(1));
+
+		try {
+			$this->db->transaction(function(\Mysql\Client $db, callable $commit) {
+				$db->query('delete from `foobar` where `id` = 1');
+				throw new \Exception('Транзакция откатится так как не зафиксирована');
+			});
+		} catch (\Mysql\Exception $e) {}
+		$this->assertNotNull($this->db->table('foobar')->get(1));
+
+		try {
+			$this->db->transaction(function(\Mysql\Client $db, callable $commit) {
+				$db->query('delete from `foobar` where `id` = 1');
+				$commit();
+				throw new \Exception('Транзакция не откатится так как уже зафиксирована');
+			});
+		} catch (\Mysql\Exception $e) {}
+		$this->assertNull($this->db->table('foobar')->get(1));
+	}
+
+	public function testTransactionRollback() {
+		$this->assertArraySubset([
+			'id' => '1',
+			'ut' => '1438168960',
+		], $this->db->table('foobar')->get(1));
+
+		$this->db->transaction(function(\Mysql\Client $db, callable $commit, callable $rollback) {
+			$db->query('delete from `foobar` where `id` = 1');
+			$rollback();
+		});
+		$this->assertNotNull($this->db->table('foobar')->get(1));
+	}
 	
 }

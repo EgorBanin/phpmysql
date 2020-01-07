@@ -81,8 +81,10 @@ $db->transaction(function($db, $commit, $rollback) {
 	$sum = 100;
 
 	$account = $db->query('
-		select for update from `accounts`
+		select *
+		from `accounts`
 		where `id` = :id
+		for update
 	', [':id' => $from])->row();
 	if ($account['amount'] < $sum) {
 		return $rollback(); // или можно просто бросить исключение
@@ -99,9 +101,11 @@ $db->transaction(function($db, $commit, $rollback) {
 		where `id` = :to
 	', [':sum' => $sum, ':to' => $to]);
 	
-	return $commit(); // можно и не вызывать коммит, он будет вызван автоатически
+	return $commit(); // можно и не вызывать коммит, он будет вызван автоматически
 });
 ~~~
+
+
 
 ### Обработка ошибок
 

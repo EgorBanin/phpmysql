@@ -62,34 +62,23 @@ class Client {
 		
 		return $result;
 	}
-	
+
 	/**
-	 * Выполнение нескольких запросов в рамках одной транзакции
-	 * @param array $queries
+	 * Выполнение функции в рамках транзакции
+	 * @param callable $func
 	 * @throws \Mysql\Exception
+	 * @return bool
 	 */
-	public function transaction(array $queries, array &$results = array()) {
+	public function transaction(callable $func): bool {
 		$this->connection->startTransaction();
-		
-		foreach ($queries as $query) {
-			if (is_string($query)) {
-				$sql = $query;
-				$params = array();
-			} elseif (is_array($query)) {
-				$sql = array_shift($query);
-				$params = array_shift($query)?: array();
-			} else {
-				throw new Exception('Неверный формат запроса');
-			}
-			
-			try {
-				$results[] = $this->query($sql, $params);
-			} catch (Exception $e) {
-				$this->connection->rollbackTransaction();
-				throw $e;
-			}
+
+		try {
+			$func($this);
+		} catch (\Throwable $e) {
+			$this->connection->rollbackTransaction();
+			throw new Exception('Не удалось выполнить транзакцию.', 0, $e);
 		}
-		
+
 		return $this->connection->commitTransaction();
 	}
 

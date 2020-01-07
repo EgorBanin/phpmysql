@@ -39,14 +39,14 @@ class ClientTest extends MysqlTestCase {
 			'ut' => '1438168960',
 		], $this->db->table('foobar')->get(1));
 
-		$this->db->transaction([
-			'delete from `foobar` where `id` = 1',
-			['
+		$this->db->transaction(function(\Mysql\Client $db) {
+			$db->query('delete from `foobar` where `id` = 1');
+			$db->query('
 				update `foobar`
 				set `ut` = :ut
 				where `id` = :id
-			', [':ut' => 0, ':id' => 1]],
-		]);
+			', [':ut' => 0, ':id' => 1]);
+		});
 		
 		$this->assertSame(null, $this->db->table('foobar')->get(1));
 	}
@@ -64,15 +64,15 @@ class ClientTest extends MysqlTestCase {
 		')->row());
 
 		try {
-			$this->db->transaction([
-				'delete from `foobar` where `id` = 1',
-				['
+			$this->db->transaction(function(\Mysql\Client $db) {
+				$db->query('delete from `foobar` where `id` = 1');
+				$db->query('
 					update `foobar`
 					set `ut` = :ut
 					where `id` = :id
-				', [':ut' => 0, ':id' => 1]],
-				'wrong query',
-			]);
+				', [':ut' => 0, ':id' => 1]);
+				$db->query('wrong query');
+			});
 		} catch (\Mysql\Exception $e) {
 			//
 		}

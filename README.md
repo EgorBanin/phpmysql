@@ -268,3 +268,11 @@ $hotPosts = $db->query('
 - [MeekroDB](https://github.com/SergeyTsalkov/meekrodb) -- обёртка mysqli, LGPLv3
 - [DByte](https://github.com/Xeoncross/DByte) -- компактная реализация обёртки PDO, MIT
 - [DbSimple](https://github.com/DmitryKoterov/dbsimple) -- довольно известная в рунете библиотека, умеет работать с разными расширениями, LGPL
+
+### Тесты
+
+Интеграционные тесты включают `general_log` и исследуют лог-файл после каждого запроса.
+
+~~~
+docker-compose -f tests/docker/docker-compose.yaml up -V --abort-on-container-exit
+~~~

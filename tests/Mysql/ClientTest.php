@@ -39,7 +39,7 @@ class ClientTest extends MysqlTestCase {
 			'ut' => '1438168960',
 		], $this->db->table('foobar')->get(1));
 
-		$this->db->transaction(function(\Mysql\Client $db) {
+		$this->db->transaction(function(\Mysql\Connection $db) {
 			$db->query('delete from `foobar` where `id` = 1');
 			$db->query('
 				update `foobar`
@@ -64,7 +64,7 @@ class ClientTest extends MysqlTestCase {
 		')->row());
 
 		try {
-			$this->db->transaction(function(\Mysql\Client $db) {
+			$this->db->transaction(function(\Mysql\Connection $db) {
 				$db->query('delete from `foobar` where `id` = 1');
 				$db->query('
 					update `foobar`
@@ -96,7 +96,7 @@ class ClientTest extends MysqlTestCase {
 		], $this->db->table('foobar')->get(1));
 
 		try {
-			$this->db->transaction(function(\Mysql\Client $db, callable $commit) {
+			$this->db->transaction(function(\Mysql\Connection $db, callable $commit) {
 				$db->query('delete from `foobar` where `id` = 1');
 				throw new \Exception('Транзакция откатится так как не зафиксирована');
 			});
@@ -104,7 +104,7 @@ class ClientTest extends MysqlTestCase {
 		$this->assertNotNull($this->db->table('foobar')->get(1));
 
 		try {
-			$this->db->transaction(function(\Mysql\Client $db, callable $commit) {
+			$this->db->transaction(function(\Mysql\Connection $db, callable $commit) {
 				$db->query('delete from `foobar` where `id` = 1');
 				$commit();
 				throw new \Exception('Транзакция не откатится так как уже зафиксирована');
@@ -119,7 +119,7 @@ class ClientTest extends MysqlTestCase {
 			'ut' => '1438168960',
 		], $this->db->table('foobar')->get(1));
 
-		$this->db->transaction(function(\Mysql\Client $db, callable $commit, callable $rollback) {
+		$this->db->transaction(function(\Mysql\Connection $db, callable $commit, callable $rollback) {
 			$db->query('delete from `foobar` where `id` = 1');
 			$rollback();
 		});

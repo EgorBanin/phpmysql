@@ -2,6 +2,11 @@
 
 namespace Mysql;
 
+/**
+ * Строитель SQL-запросов
+ * Класс предназначен для использования внутри библиотеки
+ * и задумывался как приватный относительно пакета \Mysql.
+ */
 class QueryBuilder {
 	
 	private $placeholderId = 0;
@@ -201,7 +206,7 @@ class QueryBuilder {
 			
 			foreach ($sort as $k => $v) {
 				if ($isAssoc) {
-					$direction = ($v > 0 || strtolower($v) === 'asc')? 'asc' : 'desc';
+					$direction = ((int) $v > 0 || strtolower($v) === 'asc')? 'asc' : 'desc';
 					$order[] = self::quote($k).' '.$direction;
 				} else {
 					$order[] = self::quote($v);

@@ -39,7 +39,7 @@ class TableTest extends MysqlTestCase {
 	}
 	
 	public function testSelect() {
-		$t = new \Mysql\Table($this->db, 'foobar');
+		$t = $this->db->table('foobar');
 		
 		$this->assertSame([
 			[
@@ -109,7 +109,7 @@ class TableTest extends MysqlTestCase {
 	}
 	
 	public function testGet() {
-		$t = new \Mysql\Table($this->db, 'foobar');
+		$t = $this->db->table('foobar');
 		
 		$this->assertSame([
 			'id' => '3',
@@ -122,7 +122,7 @@ class TableTest extends MysqlTestCase {
 	}
 	
 	public function testSet() {
-		$t = new \Mysql\Table($this->db, 'foobar');
+		$t = $this->db->table('foobar');
 		$this->assertSame([
 			'id' => '3',
 			'title' => 'Baz',
@@ -141,7 +141,7 @@ class TableTest extends MysqlTestCase {
 	}
 	
 	public function testRm() {
-		$t = new \Mysql\Table($this->db, 'foobar');
+		$t = $this->db->table('foobar');
 		$this->assertSame([
 			['id' => '1'],
 			['id' => '2'],
@@ -157,7 +157,7 @@ class TableTest extends MysqlTestCase {
 	}
 	
 	public function testInsert() {
-		$t = new \Mysql\Table($this->db, 'foobar');
+		$t = $this->db->table('foobar');
 		$this->assertSame([
 			['id' => '1'],
 			['id' => '2'],

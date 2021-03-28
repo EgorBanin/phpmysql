@@ -1,7 +1,6 @@
 ## Простая библиотека для работы с MySQL
 
-Простейшая обёртка mysqli, которая умеет экранировать и подставлять данные
-в запрос.
+Обёртка mysqli, которая умеет делать простые и асинхронные запросы.
 
 ### Установка
 
@@ -15,12 +14,16 @@
 ~~~php
 <?php
 
-$db = Mysql\Client::init('username', 'password')
-	->defaultDb('Sakila')
-	->charset('utf8');
+$db = Mysql\Client::init([
+    'user' => 'username',
+    'password' => 'password',
+    'defaultDB' => 'Sakila',
+    'charset' => 'utf8',
+    'lazy' => true,
+]);
 ~~~
 
-Подключение к базе данных создаётся не сразу, а при первом запросе.
+Если опция `'lazy'` установлена в `true`, то подключение к базе данных создаётся не сразу, а при первом запросе.
 
 ### Запрос и получение данных
 
@@ -75,12 +78,12 @@ $result = $db->query('
 ### Транзакции
 
 ~~~php
-$db->transaction(function($db, $commit, $rollback) {
+$db->transaction(function($connection, $commit, $rollback) {
 	$from = 1;
 	$to = 2;
 	$sum = 100;
 
-	$account = $db->query('
+	$account = $connection->query('
 		select *
 		from `accounts`
 		where `id` = :id
@@ -90,12 +93,12 @@ $db->transaction(function($db, $commit, $rollback) {
 		return $rollback(); // или можно просто бросить исключение
 	}
 
-	$db->query('
+	$connection->query('
 		update `accounts`
 		set `amount` = `amount` - :sum
 		where `id` = :from
 	', [':sum' => $sum, ':from' => $from]);
-	$db->query('
+	$connection->query('
 		update `accounts`
 		set `amount` = `amount` + :sum
 		where `id` = :to
@@ -109,8 +112,7 @@ $db->transaction(function($db, $commit, $rollback) {
 
 ### Обработка ошибок
 
-В случае возникновения ошибки при выполнении запроса, методы query и transaction
-бросают исключение Mysql\Exception.
+В случае возникновения ошибки при подключении или при выполнении запроса будет брошено исключение Mysql\Exception.
 
 ### Вспомогательный класс Table
 
@@ -250,12 +252,12 @@ $archive = $db->query('
 ]);
 ~~~
 
-Хотя первый варинат более компактный, он не такой очевидный как SQL-запрос.
+Хотя первый вариант более компактный, он не такой очевидный как SQL-запрос.
 
 ### Советы по написанию SQL-запросов
 
 - Не стесняйтесь переносить строку запроса и использовать отступы для улучшения читаемости;
-- Не пишите запросы капсом, в этом нет смысла (хотя вот github подсветил первый запрос :-);
+- Не пишите запросы капсом, в этом нет смысла;
 - Заключайте в апострофы имена таблиц, столбцов и алиасов;
 - Используйте осмысленные имена алиасов;
 - По возможности используйте одинаковый стиль написания имён переменных php и столбцов в базе.

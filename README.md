@@ -254,6 +254,64 @@ $archive = $db->query('
 
 Хотя первый вариант более компактный, он не такой очевидный как SQL-запрос.
 
+### Асинхронные запросы
+
+```php
+$db = Mysqli\Client::pool([
+    [
+        'user' => 'username',
+        'password' => 'password',
+        'defaultDB' => 'Sakila',
+        'charset' => 'utf8',
+        'lazy' => true,
+    ],
+    [
+        'user' => 'username',
+        'password' => 'password',
+        'defaultDB' => 'Sakila',
+        'charset' => 'utf8',
+        'lazy' => true,
+    ]
+]);
+```
+
+Количество подключений в пуле определяет сколько запросов может быть выполнено параллельно. Но даже одно подключение может обеспечить выигрыш во времени выполнения, если перед использованием результатов медленного асинхронного запроса выполняется какой-то медленный код.
+
+```php
+$result = $db->asyncQuery('select sleep(1)');
+sleep(1);
+var_dump($result->rows()); // завершится быстрее чем за 2 секунды
+```
+
+### Тэги подключений
+
+Кроме асинхронных запросов пул позволяет разделить подключения для разных задач на уровне приложения.
+
+```php
+$db = Mysqli\Client::pool([
+    [
+        'host' => 'master',
+        'tags' => ['write'],
+        'user' => 'username',
+        'password' => 'password',
+        'defaultDB' => 'Sakila',
+        'charset' => 'utf8',
+        'lazy' => true,
+    ],
+    [
+        'host' => 'slave',
+        'tags' => ['read'],
+        'user' => 'username',
+        'password' => 'password',
+        'defaultDB' => 'Sakila',
+        'charset' => 'utf8',
+        'lazy' => true,
+    ]
+]);
+$db->query('insert into `foo` ...', [], ['write']); // уйдёт на master
+$db->query('select * from `foo` ...', [], ['read']); // уйдёт на slave
+```
+
 ### Советы по написанию SQL-запросов
 
 - Не стесняйтесь переносить строку запроса и использовать отступы для улучшения читаемости;

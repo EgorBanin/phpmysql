@@ -4,6 +4,7 @@ services:
 
   php:
     build: php
+    container_name: phpmysql_php
     command: /app/tests/docker/wait-for-it.sh mysql:3306 -t 60 -q -- /app/vendor/bin/phpunit /app/tests/Mysql
     volumes:
       - ../../:/app
@@ -13,6 +14,7 @@ services:
 
   mysql:
     image: mysql
+    container_name: phpmysql_mysql
     command: mysqld --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: root
@@ -21,5 +23,7 @@ services:
       MYSQL_PASSWORD: passw0rd
     volumes:
       - ./mysql-log:/var/log/mysql-log
+    ports:
+      - 3306:3306
     logging:
       driver: none

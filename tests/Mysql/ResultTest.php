@@ -14,7 +14,7 @@ class ResutTest extends \PHPUnit\Framework\TestCase {
 		$this->assertEquals(['id' => 1, 'text' => 'abc'], $result->row());
 		$this->assertEquals(['id' => 2, 'text' => 'def'], $result->row());
 		$this->assertEquals(['id' => 3, 'text' => 'ghi'], $result->row());
-		$this->assertFalse($result->row());
+		$this->assertEmpty($result->row());
 	}
 	
 }

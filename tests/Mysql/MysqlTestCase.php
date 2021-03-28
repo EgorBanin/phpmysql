@@ -10,9 +10,13 @@ abstract class MysqlTestCase extends \PHPUnit\Framework\TestCase {
 	protected $dbName = 'sakiladb';
 
 	public function getDb() {
-		return \Mysql\Client::init($this->user, $this->password, $this->host)
-			->defaultDb($this->dbName)
-			->charset('utf8');
+		return \Mysql\Client::init([
+			'user' => $this->user,
+			'password' => $this->password,
+			'host' => $this->host,
+			'defaultDb' => $this->dbName,
+			'charset' => 'utf8'
+		]);
 	}
 
 }

@@ -1,94 +1,153 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Mysql;
 
 /**
  * Клиент базы данных MySQL
- * Обёртка Mysqli с подключением по требованию.
+ * Обёртка Mysqli. Поддерживает несколько подключений к MySQL
+ * и асинхронные запросы в синхронном стиле.
  */
-class Client {
-	
-	private $connection;
-	
-	public function __construct(Connection $connection) {
-		$this->connection = $connection;
-	}
-	
-	public static function init($username, $password, $host = 'localhost', $port = 3306, $lazyConnect = true) {
-		$connection = new Connection($username, $password, $host, $port);
+class Client
+{
 
-		if ( ! $lazyConnect) {
-			$connection->connect();
+	/** @var Pool */
+	private $pool;
+
+	public function __construct(Pool $pool)
+	{
+		$this->pool = $pool;
+	}
+
+	/**
+	 * Создать клиент на основе конфига подключения к MySQL
+	 * @see Client::pool()
+	 * @param array $config
+	 * @return self
+	 * @throws Exception
+	 */
+	public function init(array $config): self
+	{
+		return self::pool([$config]);
+	}
+
+	/**
+	 * Создать клиент на основе нескольких конфигов подключения к MySQL
+	 * Конфиг подключения поддерживает следующие ключи:
+	 * user -- string имя пользователя
+	 * password -- string пароль пользователя
+	 * [host] -- string хост (localhost)
+	 * [port] -- int порт (3306)
+	 * [defaultDb] -- string|null имя базы данных по умолчанию (null)
+	 * [charset] -- string|null кодировка подключения (null)
+	 * [lazy] -- bool подключаться не сразу, а по требованию (false)
+	 * [tags] -- string[] тэги ([])
+	 * @param array $configs
+	 * @return self
+	 * @throws Exception
+	 */
+	public static function pool(array $configs): self
+	{
+		$connections = [];
+		foreach ($configs as $config) {
+			$connection = new Connection(
+				$config['user']?? '',
+				$config['password']?? '',
+				$config['host']?? 'localhost',
+				$config['port']?? 3306,
+				$config['tags']?? []
+			);
+			if (isset($config['defaultDb'])) {
+				$connection->defaultDb($config['defaultDb']);
+			}
+			if (isset($config['charset'])) {
+				$connection->charset($config['charset']);
+			}
+
+			$lazy = $config['lazy']?? false;
+			if (!$lazy) {
+				$connection->connect();
+			}
+			$connections[] = $connection;
 		}
-		
-		return new self($connection);
+
+		return new self(new Pool($connections));
 	}
-	
+
 	/**
-	 * База данных по умолчанию
-	 * @param string $dbName
-	 */
-	public function defaultDb($dbName) {
-		$this->connection->defaultDb($dbName);
-		
-		return $this;
-	}
-	
-	/**
-	 * Кодировка
-	 * @param string $charset
-	 */
-	public function charset($charset) {
-		$this->connection->charset($charset);
-		
-		return $this;
-	}
-	
-	/**
-	 * Запрос
-	 * Значения параметров экранируются; строки заключаются в одинарные кавычки;
-	 * булевы значения преобразуются в строки true и false, null-значения — в null;
-	 * значения одномерных массивов разделяются запятыми,
-	 * двуменые дополнительно заключаются скобки;
-	 * объекты приводятся к строке.
+	 * Выбрать подходящее подключение и выполнить на нём запрос
+	 * @see Connection::query()
 	 * @param string $sql
 	 * @param array $params
+	 * @param array $tags
 	 * @return Result
 	 * @throws Exception
 	 */
-	public function query($sql, array $params = array()) {
-		$prepared = $this->prepare($sql, $params, array($this->connection, 'quote'));
-		$result = $this->connection->query($prepared);
-		
-		return $result;
+	public function query(string $sql, array $params = [], $tags = []): Result
+	{
+		$connection = $this->pool->getFreeConnection($tags);
+
+		return $connection->query($sql, $params);
 	}
 
 	/**
-	 * Выполнение функции в рамках транзакции
+	 * Выбрать подходящее подключение и выполнить на нём асинхронный запрос
+	 * @see Connection::asyncQuery()
+	 * @param string $sql
+	 * @param array $params
+	 * @param array $tags
+	 * @return AsyncResult
+	 * @throws Exception
+	 */
+	public function asyncQuery(string $sql, array $params = [], $tags = []): AsyncResult
+	{
+		$connection = $this->pool->getFreeConnection($tags);
+
+		return $connection->asyncQuery($sql, $params);
+	}
+
+	/**
+	 * Выбрать подходящее подключение и создать на нём объект Table
+	 * @see Table
+	 * @param $name
+	 * @param string $pk
+	 * @param array $tags
+	 * @return Table
+	 */
+	public function table($name, $pk = 'id', array $tags = []): Table
+	{
+		$connection = $this->pool->getFreeConnection($tags);
+
+		return $connection->table($name, $pk);
+	}
+
+	/**
+	 * Выбрать подходящее подключение и запустить на нём транзакцию
 	 * В качества аргумента принимает функцию типа
 	 * function(\Mysql\Client $db, callable $commit, callable $rollback) { ... }
 	 * Исключение внутри функции вызовет автоматический откат транзакции, завершение без ошибок -- автоматический коммит.
 	 * @param callable $func
-	 * @throws \Mysql\Exception
+	 * @param array $tags
 	 * @return mixed результат вызова $func
+	 * @throws Exception
 	 */
-	public function transaction(callable $func) {
-		$connection = $this->connection;
+	public function transaction(callable $func, array $tags = [])
+	{
+		$connection = $this->pool->getFreeConnection($tags);
 		$connection->startTransaction();
 
 		$commitResult = null;
-		$commit = static function() use($connection, &$commitResult): bool {
+		$commit = static function () use ($connection, &$commitResult): bool {
 			$commitResult = $connection->commitTransaction();
 			return $commitResult;
 		};
 		$rollbackResult = null;
-		$rollback = static function() use($connection, &$rollbackResult): bool {
+		$rollback = static function () use ($connection, &$rollbackResult): bool {
 			$rollbackResult = $connection->rollbackTransaction();
 			return $rollbackResult;
 		};
 
 		try {
-			$result = $func($this, $commit, $rollback);
+			$result = $func($connection, $commit, $rollback);
 		} catch (\Throwable $e) {
 			if ($commitResult === null && $rollbackResult === null) {
 				$connection->rollbackTransaction();
@@ -103,23 +162,4 @@ class Client {
 		return $result;
 	}
 
-	/**
-	 * Шорткат для new Table
-	 * @param string $name имя таблицы
-	 * @param string $pk имя столбца, по которому построен первичный ключ
-	 * @return \Mysql\Table
-	 */
-	public function table($name, $pk = 'id') {
-		return new Table($this, $name, $pk);
-	}
-	
-	private function prepare($sql, array $params, $quoteFunc) {
-		$replacePairs = array();
-		foreach ($params as $name => $val) {
-			$replacePairs[$name] = call_user_func($quoteFunc, $val);
-		}
-		
-		return strtr($sql, $replacePairs);
-	}
-	
 }

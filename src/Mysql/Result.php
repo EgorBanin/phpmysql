@@ -3,68 +3,57 @@
 namespace Mysql;
 
 /**
- * Универсальный результат выполнения запроса
+ * Результат выполнения запроса
  */
-class Result {
-	
+class Result implements IResult
+{
+
 	private $sql;
-	
+
 	private $rows;
-	
+
 	private $affectedRows;
-	
+
 	private $insertedId;
-	
-	public function __construct($sql, array $rows, $affectedRows, $insertedId) {
+
+	private $rowOffset = 0;
+
+	public function __construct(
+		string $sql,
+		array $rows,
+		int $affectedRows,
+		$insertedId
+	)
+	{
 		$this->sql = $sql;
 		$this->rows = $rows;
 		$this->affectedRows = $affectedRows;
 		$this->insertedId = $insertedId;
 	}
-	
-	/**
-	 * SQL-запрос
-	 * @return string
-	 */
-	public function sql() {
+
+	public function sql(): string
+	{
 		return $this->sql;
 	}
-	
-	/**
-	 * Выбранные строки
-	 * @return array
-	 */
-	public function rows() {
+
+	public function rows(): array
+	{
 		return $this->rows;
 	}
-	
-	/**
-	 * Затронутые строки
-	 * Прежде всего имеет смысл для операций update и delete.
-	 * @return int
-	 */
-	public function affectedRows() {
+
+	public function affectedRows(): int
+	{
 		return $this->affectedRows;
 	}
-	
-	/**
-	 * Автоматически генерируемый id
-	 * Имеет смысл для insert. Для множественной вставки вернёт id
-	 * первой вставленной строки.
-	 * @return int|string
-	 */
-	public function insertedId() {
+
+	public function insertedId()
+	{
 		return $this->insertedId;
 	}
-	
-	/**
-	 * Получение слудующей строки
-	 * @return array
-	 */
-	public function row() {
-		$row = each($this->rows);
-		
-		return $row? $row['value'] : false;
+
+	public function row(): array
+	{
+		return $this->rows[$this->rowOffset++] ?? [];
 	}
-	
+
 }

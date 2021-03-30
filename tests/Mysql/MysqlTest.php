@@ -18,12 +18,9 @@ class MysqlTest extends MysqlTestCase
 
 	public function testQuery()
 	{
-		$db = \Mysql\Client::init([
+		$db = $this->db([
 			'user' => 'root',
 			'password' => 'root',
-			'host' => $this->host,
-			'defaultDb' => 'sakiladb',
-			'charset' => 'utf8',
 		]);
 		$db->query('
 			set global
@@ -160,7 +157,7 @@ class MysqlTest extends MysqlTestCase
 
 	public function testQuote()
 	{
-		$conn = new \Mysql\Connection($this->user, $this->password, $this->host, 3306, []);
+		$conn = new \Mysql\Connection(...$this->getConnectionConstructorAgs());
 		$conn->connect();
 		$quote = new \ReflectionMethod(\Mysql\Connection::class, 'quote');
 		$quote->setAccessible(true);
@@ -187,10 +184,10 @@ class MysqlTest extends MysqlTestCase
 
 	public function testDefaultDb()
 	{
-		$conn = new \Mysql\Connection($this->user, $this->password, $this->host, 3306, []);
+		$conn = new \Mysql\Connection(...$this->getConnectionConstructorAgs());
 		$conn->query('select 1');
 
-		$conn->defaultDb($this->dbName);
+		$conn->defaultDb('sakiladb');
 
 		$e = null;
 		try {
@@ -202,7 +199,7 @@ class MysqlTest extends MysqlTestCase
 
 	public function testCharset()
 	{
-		$conn = new \Mysql\Connection($this->user, $this->password, $this->host, 3306, []);
+		$conn = new \Mysql\Connection(...$this->getConnectionConstructorAgs());
 		$conn->query('select 1');
 
 		$conn->charset('utf8');

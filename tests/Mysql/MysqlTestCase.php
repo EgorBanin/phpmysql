@@ -2,21 +2,37 @@
 
 namespace tests\Mysql;
 
-abstract class MysqlTestCase extends \PHPUnit\Framework\TestCase {
+abstract class MysqlTestCase extends \PHPUnit\Framework\TestCase
+{
 
-	protected $host = 'mysql';
-	protected $user = 'sakila';
-	protected $password = 'passw0rd';
-	protected $dbName = 'sakiladb';
+	protected function db(array $options = []): \Mysql\Client
+	{
+		return \Mysql\Client::init($this->getConnectionOptions($options));
+	}
 
-	public function getDb() {
-		return \Mysql\Client::init([
-			'user' => $this->user,
-			'password' => $this->password,
-			'host' => $this->host,
-			'defaultDb' => $this->dbName,
-			'charset' => 'utf8'
-		]);
+	protected function getConnectionOptions(array $options = []): array
+	{
+		return array_merge([
+			'user' => 'sakila',
+			'password' => 'passw0rd',
+			'host' => 'mysql',
+			'port' => 3306,
+			'defaultDb' => 'sakiladb',
+			'charset' => 'utf8',
+		], $options);
+	}
+
+	protected function getConnectionConstructorAgs(array $options = []): array
+	{
+		$connectionOptions = $this->getConnectionOptions($options);
+
+		return [
+			$connectionOptions['user'],
+			$connectionOptions['password'],
+			$connectionOptions['host'],
+			$connectionOptions['port'],
+			$connectionOptions['tags'] ?? [],
+		];
 	}
 
 }

@@ -2,9 +2,11 @@
 
 namespace Mysql;
 
-class QueryBuilderTest extends \PHPUnit\Framework\TestCase {
-	
-	public function testWhere() {
+class QueryBuilderTest extends \PHPUnit\Framework\TestCase
+{
+
+	public function testWhere()
+	{
 		$qb = new QueryBuilder();
 		$this->assertSame('`foo` = :0', $qb->buildWhere([
 			'foo' => 'foo value',
@@ -27,8 +29,9 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase {
 			'baz' => time()
 		]));
 	}
-	
-	public function testSelect() {
+
+	public function testSelect()
+	{
 		$qb = new QueryBuilder();
 		$params = [];
 		$this->assertSame('select * from `FooTable` where `foo` = :0', $qb->select(
@@ -40,8 +43,9 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase {
 		));
 		$this->assertSame([':0' => 'foo value'], $qb->getParams());
 	}
-	
-	public function testInsert() {
+
+	public function testInsert()
+	{
 		$qb = new QueryBuilder();
 		$params = [];
 		$this->assertSame('insert into `FooTable` set `foo` = :0', $qb->insert(
@@ -51,7 +55,7 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase {
 			]
 		));
 		$this->assertSame([':0' => 'foo value'], $qb->getParams());
-		
+
 		$params = [];
 		$this->assertSame('insert into `FooTable` (`foo`) values :0', $qb->insert(
 			'FooTable',
@@ -65,8 +69,9 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase {
 			['foo' => 'value 2'],
 		]], $qb->getParams());
 	}
-	
-	public function testUpdate() {
+
+	public function testUpdate()
+	{
 		$qb = new QueryBuilder();
 		$params = [];
 		$this->assertSame('update `FooTable` set `foo` = :0 where `id` = :1', $qb->update(
@@ -80,20 +85,22 @@ class QueryBuilderTest extends \PHPUnit\Framework\TestCase {
 		));
 		$this->assertSame([':0' => 'foo value', ':1' => 123], $qb->getParams());
 	}
-	
-	public function testOrderBy() {
+
+	public function testOrderBy()
+	{
 		$this->assertSame(' order by `id`', QueryBuilder::orderBy('id'));
 		$this->assertSame(' order by `id`', QueryBuilder::orderBy(['id']));
 		$this->assertSame(' order by `ctime`, `id`', QueryBuilder::orderBy(['ctime', 'id']));
 		$this->assertSame(' order by `id` desc', QueryBuilder::orderBy(['id' => 'desc']));
-		$this->assertSame(' order by `ctime` desc, `id` asc', QueryBuilder::orderBy(['ctime' => 0 ,'id' => 1]));
+		$this->assertSame(' order by `ctime` desc, `id` asc', QueryBuilder::orderBy(['ctime' => 0, 'id' => 1]));
 	}
 
-	public function testLimit() {
+	public function testLimit()
+	{
 		$this->assertSame(' limit 10', QueryBuilder::limit(10));
 		$this->assertSame(' limit 10 offset 5', QueryBuilder::limit([5, 10]));
 		$this->assertSame(' limit 10', QueryBuilder::limit(['limit' => 10]));
 		$this->assertSame(' limit 10 offset 5', QueryBuilder::limit(['limit' => 10, 'offset' => 5]));
 	}
-	
+
 }

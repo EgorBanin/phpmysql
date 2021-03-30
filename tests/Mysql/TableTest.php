@@ -2,13 +2,15 @@
 
 namespace tests\Mysql;
 
-class TableTest extends MysqlTestCase {
-	
+class TableTest extends MysqlTestCase
+{
+
 	protected $db;
-	
-	public function setUp() {
+
+	public function setUp()
+	{
 		parent::setUp();
-		$this->db = $this->getDb();
+		$this->db = $this->db();
 		$this->db->query('drop table if exists `foobar`');
 		$this->db->query('
 			create table `foobar` (
@@ -32,15 +34,17 @@ class TableTest extends MysqlTestCase {
 			['Qux', 'Qux content', 1438168961, 1438168963],
 		]]);
 	}
-	
-	public function tearDown() {
+
+	public function tearDown()
+	{
 		$this->db->query('drop table if exists `foobar`');
 		parent::tearDown();
 	}
-	
-	public function testSelect() {
+
+	public function testSelect()
+	{
 		$t = $this->db->table('foobar');
-		
+
 		$this->assertSame([
 			[
 				'id' => '1',
@@ -71,13 +75,13 @@ class TableTest extends MysqlTestCase {
 				'ut' => '1438168963',
 			],
 		], $t->select());
-		
+
 		$this->assertSame([
 			[
 				'id' => '1',
 			],
 		], $t->select(['id' => 1], ['id']));
-		
+
 		$this->assertSame([
 			[
 				'id' => '4',
@@ -98,7 +102,7 @@ class TableTest extends MysqlTestCase {
 				'title' => 'Qux',
 			],
 		], $t->select([], ['id', 'title'], ['ct' => 'desc', 'id' => 'asc'], 2));
-		
+
 		$this->assertSame([
 			['id' => '3'],
 		], $t->select([['id' => ['$gt' => 2]], ['id' => ['$lt' => 4]]], ['id']));
@@ -107,10 +111,11 @@ class TableTest extends MysqlTestCase {
 			['id' => '4'],
 		], $t->select(['content' => ['$like' => '%ux%']], ['id']));
 	}
-	
-	public function testGet() {
+
+	public function testGet()
+	{
 		$t = $this->db->table('foobar');
-		
+
 		$this->assertSame([
 			'id' => '3',
 			'title' => 'Baz',
@@ -120,8 +125,9 @@ class TableTest extends MysqlTestCase {
 		], $t->get(3));
 		$this->assertNull($t->get(100500));
 	}
-	
-	public function testSet() {
+
+	public function testSet()
+	{
 		$t = $this->db->table('foobar');
 		$this->assertSame([
 			'id' => '3',
@@ -139,8 +145,9 @@ class TableTest extends MysqlTestCase {
 			'ut' => '1438168962',
 		], $t->get(3));
 	}
-	
-	public function testRm() {
+
+	public function testRm()
+	{
 		$t = $this->db->table('foobar');
 		$this->assertSame([
 			['id' => '1'],
@@ -155,8 +162,9 @@ class TableTest extends MysqlTestCase {
 			['id' => '4'],
 		], $t->select([], ['id']));
 	}
-	
-	public function testInsert() {
+
+	public function testInsert()
+	{
 		$t = $this->db->table('foobar');
 		$this->assertSame([
 			['id' => '1'],
@@ -175,10 +183,10 @@ class TableTest extends MysqlTestCase {
 			['id' => '2'],
 			['id' => '3'],
 			['id' => '4'],
-			['id' => (string) $id],
+			['id' => (string)$id],
 		], $t->select([], ['id'], ['id' => 1]));
 		$this->assertSame([
-			'id' => (string) $id,
+			'id' => (string)$id,
 			'title' => 'Quux',
 			'content' => 'Quux content',
 			'ct' => '1438168960',

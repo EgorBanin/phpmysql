@@ -5,7 +5,7 @@ services:
   php:
     build: php
     container_name: phpmysql_php
-    command: /app/tests/docker/wait-for-it.sh mysql:3306 -t 60 -q -- /app/vendor/bin/phpunit /app/tests/Mysql
+    command: /wait-for-it.sh mysql:3306 -t 60 -q -- /app/vendor/bin/phpunit /app/tests/Mysql
     volumes:
       - ../../:/app
       - ./mysql-log:/var/log/mysql-log

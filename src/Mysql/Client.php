@@ -25,7 +25,7 @@ class Client
 	 * @return self
 	 * @throws Exception
 	 */
-	public function init(array $config): self
+	public static function init(array $config): self
 	{
 		return self::pool([$config]);
 	}
@@ -47,24 +47,39 @@ class Client
 	 */
 	public static function pool(array $configs): self
 	{
+		$defaults = [
+			'user' => '',
+			'password' => '',
+			'host' => 'localhost',
+			'port' => 3306,
+			'tags' => [],
+			'defaultDb' => null,
+			'charset' => null,
+			'lazy' => false,
+		];
 		$connections = [];
 		foreach ($configs as $config) {
+			$c = array_replace($defaults, $config);
+			$diff = array_diff(array_keys($c), array_keys($defaults));
+			if ($diff) {
+				throw new Exception(sprintf('Неожиданный параметр подключения %s', implode(', ', $diff)));
+			}
+
 			$connection = new Connection(
-				$config['user']?? '',
-				$config['password']?? '',
-				$config['host']?? 'localhost',
-				$config['port']?? 3306,
-				$config['tags']?? []
+				$c['user'],
+				$c['password'],
+				$c['host'],
+				$c['port'],
+				$c['tags']
 			);
-			if (isset($config['defaultDb'])) {
+			if (isset($c['defaultDb'])) {
 				$connection->defaultDb($config['defaultDb']);
 			}
-			if (isset($config['charset'])) {
+			if (isset($c['charset'])) {
 				$connection->charset($config['charset']);
 			}
 
-			$lazy = $config['lazy']?? false;
-			if (!$lazy) {
+			if (!$c['lazy']) {
 				$connection->connect();
 			}
 			$connections[] = $connection;
@@ -78,11 +93,11 @@ class Client
 	 * @see Connection::query()
 	 * @param string $sql
 	 * @param array $params
-	 * @param array $tags
+	 * @param string[] $tags
 	 * @return Result
 	 * @throws Exception
 	 */
-	public function query(string $sql, array $params = [], $tags = []): Result
+	public function query(string $sql, array $params = [], array $tags = []): Result
 	{
 		$connection = $this->pool->getFreeConnection($tags);
 
@@ -94,11 +109,11 @@ class Client
 	 * @see Connection::asyncQuery()
 	 * @param string $sql
 	 * @param array $params
-	 * @param array $tags
+	 * @param string[] $tags
 	 * @return AsyncResult
 	 * @throws Exception
 	 */
-	public function asyncQuery(string $sql, array $params = [], $tags = []): AsyncResult
+	public function asyncQuery(string $sql, array $params = [], array $tags = []): AsyncResult
 	{
 		$connection = $this->pool->getFreeConnection($tags);
 
@@ -108,12 +123,12 @@ class Client
 	/**
 	 * Выбрать подходящее подключение и создать на нём объект Table
 	 * @see Table
-	 * @param $name
+	 * @param string $name
 	 * @param string $pk
 	 * @param array $tags
 	 * @return Table
 	 */
-	public function table($name, $pk = 'id', array $tags = []): Table
+	public function table(string $name, string $pk = 'id', array $tags = []): Table
 	{
 		$connection = $this->pool->getFreeConnection($tags);
 

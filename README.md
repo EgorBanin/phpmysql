@@ -17,7 +17,7 @@
 $db = Mysql\Client::init([
     'user' => 'username',
     'password' => 'password',
-    'defaultDB' => 'Sakila',
+    'defaultDb' => 'Sakila',
     'charset' => 'utf8',
     'lazy' => true,
 ]);
